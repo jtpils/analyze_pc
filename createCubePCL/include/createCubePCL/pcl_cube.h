@@ -8,14 +8,21 @@
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/io/pcd_io.h>
 
 class PCLCube{
   public:
     PCLCube();
+    void savetoFile();
+    void savetoFile(std::string filename);
 
   private:
     ros::NodeHandle nh;
     pcl::PointCloud<pcl::PointXYZ> cube_cloud;
     pcl::PointXYZ cube_center;
+
+    void generatePoints();
+
+    bool dense;
 
 };
