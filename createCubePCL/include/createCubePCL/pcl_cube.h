@@ -16,11 +16,12 @@
 class PCLCube{
   public:
     PCLCube();
+    void spin();
     void savetoFile();
     void savetoFile(std::string filename);
+    void generatePoints();
 
   private:
-    void generatePoints();
     void generatePlanePoints(pcl::PointNormal, float);
 
     ros::NodeHandle nh;
