@@ -1,3 +1,5 @@
+#ifndef PCL_CUBE_H
+#define PCL_CUBE_H
 /* File : pcl_cube.h
  * Author : Savant Krishna <savant.2020@gmail.com>
  * Description : Cube Pointcloud creation. PCLCube class declaration
@@ -9,9 +11,6 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
-
-#define DENSE_FACTOR 16
-#define POINTS_PER_UNIT 128
 
 class PCLCube{
   public:
@@ -31,3 +30,4 @@ class PCLCube{
     bool dense;
 
 };
+#endif
