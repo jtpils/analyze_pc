@@ -17,6 +17,8 @@ PCLCube::PCLCube(){
 
     dense = false;
     scale = 1.0;
+
+    point_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/cube_cloud",1);
 };
 
 void PCLCube::savetoFile(){
@@ -39,24 +41,44 @@ void PCLCube::savetoFile(std::string fn){
   pcl::io::savePCDFileASCII (fn, cube_cloud);
 }
 
-void PCLCube::findFaceCenters(pcl::PointNormal &fc, pcl::Normal normal, bool direction){
-
+pcl::PointNormal  PCLCube::findFaceCenter(int index, bool direction){
+    pcl::PointNormal fc;
+    pcl::Normal n = cube_axes[index];
+    int factor = 1;
+    if (!direction){
+        factor = -1;
+    }
+    // Make sure that normal is normalized!
+    fc.x = cube_center.x + factor*n.normal[0]*scale/2;
+    fc.y = cube_center.y + factor*n.normal[1]*scale/2;
+    fc.z = cube_center.z + factor*n.normal[2]*scale/2;
+    fc.normal[0] = factor*n.normal[0];
+    fc.normal[1] = factor*n.normal[1];
+    fc.normal[2] = factor*n.normal[2];
+    return fc;
 }
 
-void PCLCube::generatePlanePoints(pcl::PointNormal center, float scale){
+void PCLCube::generatePlanePoints(pcl::PointNormal center, int index){
     //std::cerr << cube_cloud.width << " " << cube_cloud.height << "\n";
-    for (size_t i=0; i<cube_cloud.width/6; ++i){
-        for(size_t j=0; j<cube_cloud.height; ++j){
-            cube_cloud(i,j) = pcl::PointXYZ(0.0,0.0,0.0);
-            //TODO : get correct coordinates for points
-            //
+    pcl::Normal n1 = cube_axes[(index/2+1)%3];
+    pcl::Normal n2 = cube_axes[(index/2+2)%3];
+    size_t width = cube_cloud.width/6;
+    size_t height = cube_cloud.height;
+    for (size_t i=index*width; i<(index+1)*width; ++i){
+        float n1_factor = scale*(1.0*i/width-index-0.5);
+        for(size_t j=0; j<height; ++j){
+            float n2_factor = scale*(1.0*j/width-index-0.5);
+            pcl::PointXYZ point;
+            point.x = center.x + n1_factor*n1.normal[0] + n2_factor*n2.normal[0];
+            point.y = center.y + n1_factor*n1.normal[1] + n2_factor*n2.normal[1];
+            point.z = center.z + n1_factor*n1.normal[2] + n2_factor*n2.normal[2];
+            cube_cloud(i,j) = point;
         }
     }
 }
 
 void PCLCube::generatePoints(){
     float dense_scale = scale;
-    pcl::PointNormal face_centers[6];
     bool direction = true;
     if (dense){
         dense_scale*=DENSE_FACTOR;
@@ -69,12 +91,22 @@ void PCLCube::generatePoints(){
     //std::cerr << POINTS_PER_UNIT << " " << DENSE_FACTOR << " " << dense_scale << "\n";
     for (int i=0; i<6; ++i){
         // TODO : get the correct face_centers with normals
-        findFaceCenters(face_centers[i],cube_axes[i/2],direction);
+        generatePlanePoints(findFaceCenter(i/2, direction), i);
         direction = (!direction);
-        generatePlanePoints(face_centers[i], scale);
     }
 }
 
+void PCLCube::publishPointCloud(){
+    sensor_msgs::PointCloud2 temp_msg;
+    pcl::toROSMsg(cube_cloud,temp_msg);
+    point_cloud_pub.publish(temp_msg);
+}
+
 void PCLCube::spin(){
-    ros::spin();
+    ros::Rate loop_rate(100);
+    while(ros::ok()){
+        publishPointCloud();
+        ros::spinOnce();
+        loop_rate.sleep();
+    }
 }
