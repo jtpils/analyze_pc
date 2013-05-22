@@ -13,7 +13,6 @@ PCLCube::PCLCube(){
     cube_axes[0] = pcl::Normal(0,1,0); //The Y-axis
     cube_axes[1] = pcl::Normal(0,0,1); //The Z-axis
     cube_axes[2] = findNormal(cube_axes[0],cube_axes[1]);
-    //std::cerr << cube_axes[0] << cube_axes[1] << cube_axes[2] << "\n";
 
     dense = false;
     scale = 1.0;
@@ -59,7 +58,6 @@ pcl::PointNormal  PCLCube::findFaceCenter(int index, bool direction){
 }
 
 void PCLCube::generatePlanePoints(pcl::PointNormal center, int index){
-    //std::cerr << cube_cloud.width << " " << cube_cloud.height << "\n";
     pcl::Normal n1 = cube_axes[(index/2+1)%3];
     pcl::Normal n2 = cube_axes[(index/2+2)%3];
     size_t width = cube_cloud.width/6;
@@ -67,7 +65,7 @@ void PCLCube::generatePlanePoints(pcl::PointNormal center, int index){
     for (size_t i=index*width; i<(index+1)*width; ++i){
         float n1_factor = scale*(1.0*i/width-index-0.5);
         for(size_t j=0; j<height; ++j){
-            float n2_factor = scale*(1.0*j/width-index-0.5);
+            float n2_factor = scale*(1.0*j/width-0.5);
             pcl::PointXYZ point;
             point.x = center.x + n1_factor*n1.normal[0] + n2_factor*n2.normal[0];
             point.y = center.y + n1_factor*n1.normal[1] + n2_factor*n2.normal[1];
@@ -87,10 +85,7 @@ void PCLCube::generatePoints(){
     cube_cloud.height = POINTS_PER_UNIT*dense_scale;
     cube_cloud.width = 6*POINTS_PER_UNIT*dense_scale;
     cube_cloud.points.resize(cube_cloud.width*cube_cloud.height);
-    //std::cerr << cube_cloud.width << " " << cube_cloud.height << "\n";
-    //std::cerr << POINTS_PER_UNIT << " " << DENSE_FACTOR << " " << dense_scale << "\n";
     for (int i=0; i<6; ++i){
-        // TODO : get the correct face_centers with normals
         generatePlanePoints(findFaceCenter(i/2, direction), i);
         direction = (!direction);
     }
