@@ -29,7 +29,7 @@ class PCLCube{
 
     ros::NodeHandle nh;
     ros::Publisher point_cloud_pub; // ros publisher to  publish the cube cloud
-    pcl::PointCloud<pcl::PointXYZ> cube_cloud; // the cube cloud
+    pcl::PointCloud<pcl::PointXYZRGB> cube_cloud; // the cube cloud
     pcl::PointXYZ cube_center; // Cube center 
     pcl::Normal cube_axes[3]; // vectors along the sides. Any two would define the cube
     void generatePoints(); //generates the points of the cube pointcloud
