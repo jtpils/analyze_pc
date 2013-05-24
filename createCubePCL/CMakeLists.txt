@@ -37,3 +37,4 @@ set(pcl_cube_SRCS
 
 rosbuild_add_executable(save_cube src/save_cube.cpp ${pcl_cube_HDRS} ${pcl_cube_SRCS})
 rosbuild_add_executable(publish_cube src/publish_cube.cpp ${pcl_cube_HDRS} ${pcl_cube_SRCS})
+rosbuild_add_executable(compare_two_cubes src/compare_two_cubes.cpp ${pcl_cube_HDRS} ${pcl_cube_SRCS})

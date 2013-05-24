@@ -19,6 +19,7 @@ PCLCube::PCLCube(){
     scale = 1.0;
 
     point_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/cube_cloud",1);
+    //_spinner.= ros::AsyncSpinner(1);
     generatePoints();
 };
 
@@ -49,7 +50,7 @@ pcl::PointNormal  PCLCube::findFaceCenter(int index, bool direction){
     if (!direction){
         factor = -1;
     }
-    // Make sure that normal is normalized!
+    // #TODO Make sure that normal is normalized!
     fc.x = cube_center.x + factor*n.normal[0]*scale/2;
     fc.y = cube_center.y + factor*n.normal[1]*scale/2;
     fc.z = cube_center.z + factor*n.normal[2]*scale/2;
@@ -69,6 +70,7 @@ void PCLCube::generatePlanePoints(pcl::PointNormal center, int index){
         for(size_t j=0; j<height; ++j){
             float n2_factor = scale*(1.0*j/width-0.5);
             pcl::PointXYZRGB point;
+            // #TODO Make sure that normal is normalized!
             point.x = center.x + n1_factor*n1.normal[0] + n2_factor*n2.normal[0];
             point.y = center.y + n1_factor*n1.normal[1] + n2_factor*n2.normal[1];
             point.z = center.z + n1_factor*n1.normal[2] + n2_factor*n2.normal[2];
@@ -90,6 +92,15 @@ void PCLCube::generatePoints(){
     for (int i=0; i<6; ++i){
         generatePlanePoints(findFaceCenter(i/2, direction), i);
         direction = (!direction);
+    }
+}
+
+void PCLCube::colorIt(uint8_t r, uint8_t g, uint8_t b){
+    for (size_t i=0; i<cube_cloud.width; ++i){
+        for (size_t j=0; j<cube_cloud.height; ++j){
+            uint32_t rgb = ((uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b);
+            cube_cloud(i,j).rgb = *reinterpret_cast<float*>(&rgb);
+        }
     }
 }
 
