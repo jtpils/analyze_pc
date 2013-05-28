@@ -12,8 +12,15 @@
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 
+#include <boost/random.hpp>
+#include <boost/random/normal_distribution.hpp>
+
 #define DENSE_FACTOR 16
 #define POINTS_PER_UNIT 128
+
+typedef boost::normal_distribution<double> NormalDist;
+typedef boost::mt19937 RandomGen;
+typedef boost::variate_generator<RandomGen& , NormalDist> GaussianGen;
 
 class PCLCube{
   public:
@@ -24,10 +31,14 @@ class PCLCube{
     void colorIt(uint8_t, uint8_t, uint8_t);
     void changeCenterTo(pcl::PointXYZ);
     void publishPointCloud(); // publishes the pcl point cloud after converting to sensor_msgs::PointCloud2
+    void generatePoints(); //generates the points of the cube pointcloud
+    void addNoise();
+    void addNoise(GaussianGen&);
 
   private:
     void generatePlanePoints(pcl::PointNormal, int); // given a face center, generate points in that plane
     pcl::PointNormal findFaceCenter(int index, bool direction); // finds the center of a face with normal in the direction of index'th normal
+    double getGaussian(double, double);
 
     ros::NodeHandle nh;
     //ros::AsyncSpinner _spinner; //TODO: ignore
@@ -35,10 +46,14 @@ class PCLCube{
     pcl::PointCloud<pcl::PointXYZRGB> cube_cloud; // the cube cloud
     pcl::PointXYZ cube_center; // Cube center 
     pcl::Normal cube_axes[3]; // vectors along the sides. Any two would define the cube
-    void generatePoints(); //generates the points of the cube pointcloud
+
+    RandomGen rng;
+    NormalDist gaussian_dist;
+    GaussianGen *generator;
 
     float scale;
     bool dense;
+    bool noise;
     std::string cube_name;
 
 };

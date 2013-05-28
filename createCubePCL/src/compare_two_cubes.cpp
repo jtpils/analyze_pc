@@ -2,8 +2,13 @@
 
 int main (int argc, char ** argv){
     ros::init (argc, argv, "two_cubes_compare");
+    RandomGen rng(static_cast<unsigned> (time(0)));
+    NormalDist gaussian_dist(0,1);
+    GaussianGen generator(rng,gaussian_dist);
     PCLCube* c1 = new PCLCube("cube1");
     PCLCube* c2 = new PCLCube("cube2");
+    c1->addNoise(generator);
+    c2->addNoise(generator);
     c1->changeCenterTo(pcl::PointXYZ(0,1.1,0));
     c1->colorIt(255,0,0);
     c2->colorIt(0,255,0);
