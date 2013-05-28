@@ -9,7 +9,7 @@ int main (int argc, char ** argv){
     PCLCube* c2 = new PCLCube("cube2");
     c1->addNoise(generator);
     c2->addNoise(generator);
-    c1->changeCenterTo(pcl::PointXYZ(0,1.1,0));
+    c1->changeCenterTo(pcl::PointXYZ(0,4,0));
     c1->colorIt(255,0,0);
     c2->colorIt(0,255,0);
     ros::Rate loop_rate(100);
