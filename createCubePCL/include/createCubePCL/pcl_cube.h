@@ -17,7 +17,7 @@
 
 class PCLCube{
   public:
-    PCLCube(); // the constructor
+    PCLCube(std::string name="cube"); // the constructor
     void spin(); // calls ros::spinOnce and hence the callbacks for subscriptions, if any
     void savetoFile(); //saves the cube point cloud to pcd file
     void savetoFile(std::string filename);
@@ -38,6 +38,7 @@ class PCLCube{
 
     float scale;
     bool dense;
+    std::string cube_name;
 
 };
 #endif
