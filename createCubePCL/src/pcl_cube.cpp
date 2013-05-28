@@ -96,6 +96,21 @@ void PCLCube::generatePoints(){
     }
 }
 
+void PCLCube::changeCenterTo(pcl::PointXYZ new_center){
+    pcl::PointXYZ diff_centers;
+    diff_centers.x = new_center.x - cube_center.x;
+    diff_centers.y = new_center.y - cube_center.y;
+    diff_centers.z = new_center.z - cube_center.z;
+    for (size_t i=0; i<cube_cloud.width; ++i){
+        for (size_t j=0; j<cube_cloud.height; ++j){
+            cube_cloud(i,j).x = cube_cloud(i,j).x + diff_centers.x;
+            cube_cloud(i,j).y = cube_cloud(i,j).y + diff_centers.y;
+            cube_cloud(i,j).z = cube_cloud(i,j).z + diff_centers.z;
+        }
+    }
+    cube_center = new_center;
+}
+
 void PCLCube::colorIt(uint8_t r, uint8_t g, uint8_t b){
     for (size_t i=0; i<cube_cloud.width; ++i){
         for (size_t j=0; j<cube_cloud.height; ++j){
