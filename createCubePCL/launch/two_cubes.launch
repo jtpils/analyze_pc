@@ -7,7 +7,7 @@
       <!--
       <node pkg="tf" type="static_transform_publisher" name="isam_to_imu" args="0 0 0 0 0 0 /cube_cloud /world 100" />
       -->
-      <node pkg="createCubePCL" name="compate_two_cubes" type="compare_two_cubes"/>
+      <node pkg="createCubePCL" name="compare_two_cubes" type="compare_two_cubes" output="screen"/>
       <!--      <node pkg="rviz" name="rviz" type="rviz" args="-d $(find createCubePCL)/rviz/two_cubes.vcg" />-->
 
 </launch>

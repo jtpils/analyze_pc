@@ -148,6 +148,18 @@ void PCLCube::addNoiseToCenter(GaussianGen& gen){
     addNoiseToCenter();
 }
 
+void PCLCube::addNoiseToOrientation(){
+    for(int i=0; i<3; ++i){
+        Eigen::Vector3f axis;
+    }
+    //generatePoints();
+}
+
+void PCLCube::addNoiseToOrientation(GaussianGen& gen){
+    generator = new GaussianGen(gen);
+    addNoiseToOrientation();
+}
+
 void PCLCube::changeCenterTo(pcl::PointXYZ new_center){
     pcl::PointXYZ diff_centers;
     diff_centers.x = new_center.x - cube_center.x;
