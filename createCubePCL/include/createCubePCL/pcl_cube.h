@@ -19,7 +19,8 @@
 #define POINTS_PER_UNIT 32
 #define NORMAL_SIGMA_FACTOR 2.0/POINTS_PER_UNIT/DENSE_FACTOR
 #define INPLANE_SIGMA_FACTOR 2.0/POINTS_PER_UNIT/DENSE_FACTOR
-#define CENTER_SIGMA_FACTOR 1/10
+#define CENTER_SIGMA_FACTOR 0.1
+#define ORIENTATION_SIGMA_FACTOR 0.01
 
 typedef boost::normal_distribution<double> NormalDist;
 typedef boost::mt19937 RandomGen;
@@ -33,6 +34,7 @@ class PCLCube{
     void savetoFile(std::string filename);
     void colorIt(uint8_t, uint8_t, uint8_t);
     void changeCenterTo(pcl::PointXYZ);
+    void changeOrientationBy(Eigen::Quaternionf);
     void publishPointCloud(); // publishes the pcl point cloud after converting to sensor_msgs::PointCloud2
     void generatePoints(); //generates the points of the cube pointcloud
     void addNoise();
@@ -53,6 +55,8 @@ class PCLCube{
     ros::Publisher point_cloud_pub; // ros publisher to  publish the cube cloud
     pcl::PointCloud<pcl::PointXYZRGB> cube_cloud; // the cube cloud
     pcl::PointXYZ cube_center; // Cube center 
+    Eigen::Quaternionf cube_orientation;
+
     pcl::Normal cube_axes[3]; // vectors along the sides. Any two would define the cube
 
     RandomGen rng;
