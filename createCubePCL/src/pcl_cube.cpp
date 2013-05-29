@@ -131,8 +131,21 @@ void PCLCube::addNoise(GaussianGen& gen){
     noise = true;
     // Adds noise to all points
     generator = new GaussianGen(gen);
-    std::cerr << (*generator)() << " " << (*generator)() << "\n";
     generatePoints();
+}
+
+void PCLCube::addNoiseToCenter(){
+    pcl::PointXYZ new_center;
+    float center_sigma = CENTER_SIGMA_FACTOR*scale;
+    new_center.x = cube_center.x + getGaussian(center_sigma);
+    new_center.y = cube_center.y + getGaussian(center_sigma);
+    new_center.z = cube_center.z + getGaussian(center_sigma);
+    changeCenterTo(new_center);
+}
+
+void PCLCube::addNoiseToCenter(GaussianGen& gen){
+    generator = new GaussianGen(gen);
+    addNoiseToCenter();
 }
 
 void PCLCube::changeCenterTo(pcl::PointXYZ new_center){
