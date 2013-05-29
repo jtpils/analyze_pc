@@ -104,7 +104,7 @@ void PCLCube::generatePoints(){
     if (dense){
         dense_scale*=DENSE_FACTOR;
     }
-    cube_cloud.header.frame_id = "cube_cloud";
+    cube_cloud.header.frame_id = "laser_"+cube_name;
     cube_cloud.height = POINTS_PER_UNIT*dense_scale;
     cube_cloud.width = 6*POINTS_PER_UNIT*dense_scale;
     cube_cloud.points.resize(cube_cloud.width*cube_cloud.height);

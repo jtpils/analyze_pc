@@ -1,9 +1,13 @@
 <?xml version="1.0"?>
 
 <launch>
+      <node pkg="tf" type="static_transform_publisher" name="world_to_laser1"  args="0 1 0 0 0 0 /world /laser_cube1 100" />
+      <node pkg="tf" type="static_transform_publisher" name="world_to_laser2"  args="1 0 0 0 0 0 /world /laser_cube2 100" />
 
+      <!--
       <node pkg="tf" type="static_transform_publisher" name="isam_to_imu" args="0 0 0 0 0 0 /cube_cloud /world 100" />
+      -->
       <node pkg="createCubePCL" name="compate_two_cubes" type="compare_two_cubes"/>
-      <node pkg="rviz" name="rviz" type="rviz" args="-d $(find createCubePCL)/rviz/two_cubes.vcg" />
+      <!--      <node pkg="rviz" name="rviz" type="rviz" args="-d $(find createCubePCL)/rviz/two_cubes.vcg" />-->
 
 </launch>

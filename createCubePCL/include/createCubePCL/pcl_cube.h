@@ -16,9 +16,9 @@
 #include <boost/random/normal_distribution.hpp>
 
 #define DENSE_FACTOR 16
-#define POINTS_PER_UNIT 128
-#define NORMAL_SIGMA_FACTOR 2.0/POINTS_PER_UNIT
-#define INPLANE_SIGMA_FACTOR 2.0/POINTS_PER_UNIT
+#define POINTS_PER_UNIT 32
+#define NORMAL_SIGMA_FACTOR 2.0/POINTS_PER_UNIT/DENSE_FACTOR
+#define INPLANE_SIGMA_FACTOR 2.0/POINTS_PER_UNIT/DENSE_FACTOR
 
 typedef boost::normal_distribution<double> NormalDist;
 typedef boost::mt19937 RandomGen;
