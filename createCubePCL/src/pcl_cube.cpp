@@ -172,6 +172,12 @@ void PCLCube::addNoiseToOrientation(GaussianGen& gen){
 }
 
 void PCLCube::changeCenterTo(pcl::PointXYZ new_center, bool world){
+    if (world){
+        tf::Vector3 diff_origin = getFrameToWorldTransform().getOrigin();
+        new_center.x = new_center.x + diff_origin.x();
+        new_center.y = new_center.y + diff_origin.y();
+        new_center.z = new_center.z + diff_origin.z();
+    }
     pcl::PointXYZ diff_centers;
     diff_centers.x = new_center.x - cube_center.x;
     diff_centers.y = new_center.y - cube_center.y;
@@ -183,13 +189,24 @@ void PCLCube::changeCenterTo(pcl::PointXYZ new_center, bool world){
             cube_cloud(i,j).z = cube_cloud(i,j).z + diff_centers.z;
         }
     }
-    if (world){
-        cube_center = new_center;
-    }
+    cube_center = new_center;
+}
+
+void PCLCube::changeCenterBy(pcl::PointXYZ diff_center){
+    pcl::PointXYZ new_center;
+    new_center.x = cube_center.x + diff_center.x;
+    new_center.y = cube_center.y + diff_center.y;
+    new_center.x = cube_center.z + diff_center.z;
+    changeCenterTo(new_center);
 }
 
 void PCLCube::changeOrientationBy(Eigen::Quaterniond rot, bool world){
     pcl::Normal axis[3];
+    if (world){
+        Eigen::Quaterniond tf_rot;
+        tf::RotationTFToEigen(getFrameToWorldTransform().getRotation(),tf_rot);
+        rot = rot*tf_rot; //or is it the other way round?
+    }
     for (int i=0; i<3; ++i){
         axis[i] = cube_axes[i];
         Eigen::Vector3d new_axis = rot._transformVector(Eigen::Vector3d(axis[i].normal[0], axis[i].normal[1], axis[i].normal[2]));
@@ -199,11 +216,6 @@ void PCLCube::changeOrientationBy(Eigen::Quaterniond rot, bool world){
         cube_axes[i].normal[2] = new_axis[2];
     }
     generatePoints();
-    if (!world){
-        for (int i=0; i<3; ++i){
-            cube_axes[i] = axis[i];
-        }
-    }
 }
 
 void PCLCube::colorIt(uint8_t r, uint8_t g, uint8_t b){
@@ -215,21 +227,25 @@ void PCLCube::colorIt(uint8_t r, uint8_t g, uint8_t b){
     }
 }
 
-void PCLCube::registerTFFrame(){
+void PCLCube::getTransform(){
     try {
         listener.waitForTransform("/world","laser_"+cube_name, ros::Time(0), ros::Duration(10.0) );
-        listener.lookupTransform("/world","laser_"+cube_name,ros::Time(0), transform);
+        listener.lookupTransform("/world","laser_"+cube_name,ros::Time(0), world_to_frame_transform);
     }catch(tf::TransformException ex){
         ROS_ERROR("%s",ex.what());
     }
-    transform.setData(transform.inverse());
-    pcl::PointXYZ new_center = pcl::PointXYZ(transform.getOrigin().x(),transform.getOrigin().y(), transform.getOrigin().z());
-    std::cerr << new_center<< "\n";
-    changeCenterTo(new_center, false);
-    Eigen::Quaterniond rot;
-    tf::RotationTFToEigen(transform.getRotation(),rot);
-    printQuaternion(rot);
-    //changeOrientationBy(rot,false);
+}
+
+tf::StampedTransform PCLCube::getFrameToWorldTransform(){
+    tf::StampedTransform transform;
+    getTransform();
+    transform.setData(world_to_frame_transform.inverse());
+    return transform;
+}
+
+tf::StampedTransform PCLCube::getWorldToFrameTransform(){
+    getTransform();
+    return world_to_frame_transform;
 }
 
 void PCLCube::publishPointCloud(){
