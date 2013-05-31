@@ -6,6 +6,7 @@
  */
 
 #include <ros/ros.h>
+#include <std_srvs/Empty.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <tf/transform_listener.h>
 #include <tf_conversions/tf_eigen.h>
@@ -35,6 +36,8 @@ class PCLCube{
     void savetoFile(); //saves the cube point cloud to pcd file
     void savetoFile(std::string filename);
     void colorIt(uint8_t, uint8_t, uint8_t);
+    void colorIt(uint32_t);
+    void colorIt();
     void changeCenterTo(pcl::PointXYZ, bool world=false);
     void changeCenterBy(pcl::PointXYZ);
     void changeOrientationBy(Eigen::Quaterniond, bool world=false);
@@ -55,10 +58,12 @@ class PCLCube{
     double getGaussian(double, double);
     double getGaussian(double);
     void getTransform();
+    bool regenerateCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
 
     ros::NodeHandle nh;
     //ros::AsyncSpinner _spinner; //TODO: ignore
     ros::Publisher point_cloud_pub; // ros publisher to  publish the cube cloud
+    ros::ServiceServer regenerate_points_server;
     tf::TransformListener listener;
     tf::StampedTransform world_to_frame_transform;
     pcl::PointCloud<pcl::PointXYZRGB> cube_cloud; // the cube cloud
@@ -74,6 +79,7 @@ class PCLCube{
     float scale;
     bool dense;
     bool noise;
+    uint32_t rgb;
     std::string cube_name;
 
 };
