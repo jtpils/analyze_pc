@@ -6,7 +6,7 @@
 #include <createCubePCL/pcl_cube.h>
 
 pcl::Normal findNormal(pcl::Normal n1, pcl::Normal n2);
-void printQuaternion(Eigen::Quaternionf);
+void printQuaternion(Eigen::Quaterniond);
 
 PCLCube::PCLCube(std::string name):
 rng(static_cast<unsigned> (time(0))),
@@ -36,7 +36,7 @@ void PCLCube::savetoFile(){
     savetoFile("cube_pcl.pcd");
 }
 
-void printQuaternion(Eigen::Quaternionf q){
+void printQuaternion(Eigen::Quaterniond q){
     std::cout << "w: " << q.w() << ", x: " << q.x() << ", y: " << q.y() << ", z: " << q.z() << "\n";
 }
 
@@ -155,12 +155,12 @@ void PCLCube::addNoiseToCenter(GaussianGen& gen){
 }
 
 void PCLCube::addNoiseToOrientation(){
-    Eigen::Quaternionf err_rot;
-    float orient_sigma = ORIENTATION_SIGMA_FACTOR;
-    err_rot.w() = 1;
-    err_rot.x() = getGaussian(orient_sigma);
-    err_rot.y() = getGaussian(orient_sigma);
-    err_rot.z() = getGaussian(orient_sigma);
+    Eigen::Quaterniond err_rot;
+    double orient_sigma = ORIENTATION_SIGMA_FACTOR;
+    err_rot.w() = (double) 1;
+    err_rot.x() = (double) getGaussian(orient_sigma);
+    err_rot.y() = (double) getGaussian(orient_sigma);
+    err_rot.z() = (double) getGaussian(orient_sigma);
     err_rot.normalize();
     changeOrientationBy(err_rot);
     generatePoints();
@@ -171,7 +171,7 @@ void PCLCube::addNoiseToOrientation(GaussianGen& gen){
     addNoiseToOrientation();
 }
 
-void PCLCube::changeCenterTo(pcl::PointXYZ new_center){
+void PCLCube::changeCenterTo(pcl::PointXYZ new_center, bool world){
     pcl::PointXYZ diff_centers;
     diff_centers.x = new_center.x - cube_center.x;
     diff_centers.y = new_center.y - cube_center.y;
@@ -183,19 +183,27 @@ void PCLCube::changeCenterTo(pcl::PointXYZ new_center){
             cube_cloud(i,j).z = cube_cloud(i,j).z + diff_centers.z;
         }
     }
-    cube_center = new_center;
+    if (world){
+        cube_center = new_center;
+    }
 }
 
-void PCLCube::changeOrientationBy(Eigen::Quaternionf rot){
+void PCLCube::changeOrientationBy(Eigen::Quaterniond rot, bool world){
+    pcl::Normal axis[3];
     for (int i=0; i<3; ++i){
-        pcl::Normal axis = cube_axes[i];
-        Eigen::Vector3f new_axis = rot._transformVector(Eigen::Vector3f(axis.normal[0], axis.normal[1], axis.normal[2]));
+        axis[i] = cube_axes[i];
+        Eigen::Vector3d new_axis = rot._transformVector(Eigen::Vector3d(axis[i].normal[0], axis[i].normal[1], axis[i].normal[2]));
         new_axis.normalize();
         cube_axes[i].normal[0] = new_axis[0];
         cube_axes[i].normal[1] = new_axis[1];
         cube_axes[i].normal[2] = new_axis[2];
     }
     generatePoints();
+    if (!world){
+        for (int i=0; i<3; ++i){
+            cube_axes[i] = axis[i];
+        }
+    }
 }
 
 void PCLCube::colorIt(uint8_t r, uint8_t g, uint8_t b){
@@ -205,6 +213,23 @@ void PCLCube::colorIt(uint8_t r, uint8_t g, uint8_t b){
             cube_cloud(i,j).rgb = *reinterpret_cast<float*>(&rgb);
         }
     }
+}
+
+void PCLCube::registerTFFrame(){
+    try {
+        listener.waitForTransform("/world","laser_"+cube_name, ros::Time(0), ros::Duration(10.0) );
+        listener.lookupTransform("/world","laser_"+cube_name,ros::Time(0), transform);
+    }catch(tf::TransformException ex){
+        ROS_ERROR("%s",ex.what());
+    }
+    transform.setData(transform.inverse());
+    pcl::PointXYZ new_center = pcl::PointXYZ(transform.getOrigin().x(),transform.getOrigin().y(), transform.getOrigin().z());
+    std::cerr << new_center<< "\n";
+    changeCenterTo(new_center, false);
+    Eigen::Quaterniond rot;
+    tf::RotationTFToEigen(transform.getRotation(),rot);
+    printQuaternion(rot);
+    //changeOrientationBy(rot,false);
 }
 
 void PCLCube::publishPointCloud(){
