@@ -5,6 +5,7 @@
 #define WORLD_FRAME "/world"
 
 void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t);
+void transformFromTo(pcl::PointXYZRGB& p, tf::StampedTransform t);
 tf::StampedTransform getTransform(std::string from_frame, std::string to_frame);
 
 AnalyzePC::AnalyzePC(){
@@ -24,6 +25,9 @@ void AnalyzePC::qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
 }
 
 void AnalyzePC::visualizeError(){
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr qd_ptrCloud(&qd_cloud);
+    kdtree.setInputCloud(qd_ptrCloud);
+
     visualization_msgs::Marker marker;
     marker.header.frame_id = WORLD_FRAME;
     marker.header.stamp = ros::Time();
@@ -36,8 +40,11 @@ void AnalyzePC::visualizeError(){
     marker.color.b = 1.0;
     marker.color.a = 1.0;
     marker.points.clear();
+
     tf::StampedTransform tgw = getTransform(gt_cloud.header.frame_id, WORLD_FRAME);
     tf::StampedTransform tqw = getTransform(qd_cloud.header.frame_id, WORLD_FRAME);
+    tf::StampedTransform tgq = getTransform(gt_cloud.header.frame_id, qd_cloud.header.frame_id);
+
     if (gt_cloud.width == qd_cloud.width && gt_cloud.height == qd_cloud.height){
         for (size_t i=0; i<gt_cloud.width; ++i){
             for (size_t j=0; j<gt_cloud.height; ++j){
@@ -47,9 +54,22 @@ void AnalyzePC::visualizeError(){
                 p.z = gt_cloud(i,j).z;
                 transformFromTo(p,tgw);
                 marker.points.push_back(p);
+                /* Not assuming exact correspondence
                 p.x = qd_cloud(i,j).x;
                 p.y = qd_cloud(i,j).y;
                 p.z = qd_cloud(i,j).z;
+                transformFromTo(p,tqw);
+                */
+                pcl::PointXYZRGB searchPoint = gt_cloud(i,j);
+                transformFromTo(searchPoint, tgq);
+                int K=1;
+                std::vector<int> pointIdxNKNSearch(K);
+                std::vector<float> pointNKNSquaredDistance(K);
+                if ( kdtree.nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
+                    p.x = qd_cloud.points[pointIdxNKNSearch[0]].x;
+                    p.y = qd_cloud.points[pointIdxNKNSearch[0]].y;
+                    p.z = qd_cloud.points[pointIdxNKNSearch[0]].z;
+                }
                 transformFromTo(p,tqw);
                 marker.points.push_back(p);
             }
@@ -79,6 +99,13 @@ void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t){
     p.y = p.y - origin.y();
     p.z = p.z - origin.z();
     //Translation done : Now rotation
+}
+
+void transformFromTo(pcl::PointXYZRGB& p, tf::StampedTransform t){
+    tf::Vector3 origin = t.getOrigin();
+    p.x = p.x - origin.x();
+    p.y = p.y - origin.y();
+    p.z = p.z - origin.z();
 }
 
 void AnalyzePC::spin(){
