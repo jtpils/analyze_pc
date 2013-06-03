@@ -23,11 +23,20 @@ gaussian_dist(0,1)
 
     dense = false;
     noise = false;
+    center_noise = false;
     scale = 1.0;
+    dense_factor = 16;
+    points_per_unit = 32;
+    normal_sigma_factor = 2.0/points_per_unit/dense_factor;
+    inplane_sigma_factor = 2.0/points_per_unit/dense_factor;
+    center_sigma_factor = 0.1;
+    orientation_sigma_factor = 0.01;
     std::string topic_name = "/"+cube_name+"/cloud";
     point_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>(topic_name,1);
     std::string service_name = "/"+cube_name+"/regenerate";
+    std::string param_service_name = "/"+cube_name+"/set_parameters";
     regenerate_points_server = nh.advertiseService(service_name,&PCLCube::regenerateCb, this);
+    get_parameters_server = nh.advertiseService(param_service_name,&PCLCube::setParamCb, this);
     generator = new GaussianGen(rng, gaussian_dist);
 
     //_spinner.= ros::AsyncSpinner(1);
@@ -54,8 +63,27 @@ pcl::Normal findNormal(pcl::Normal n1, pcl::Normal n2){
 }
 
 bool PCLCube::regenerateCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
+    if (center_noise){
+        addNoiseToCenter();
+        addNoiseToOrientation();
+    }
     generatePoints();
     colorIt();
+    return true;
+}
+
+bool PCLCube::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
+    std::string param_ns = "/"+cube_name+"/";
+    nh.getParam(param_ns+"scale", scale);
+    nh.getParam(param_ns+"noise", noise);
+    nh.getParam(param_ns+"center_noise", center_noise);
+    nh.getParam(param_ns+"dense", dense);
+    nh.getParam(param_ns+"dense_factor", dense_factor);
+    nh.getParam(param_ns+"points_per_unit", points_per_unit);
+    nh.getParam(param_ns+"normal_sigma_factor", normal_sigma_factor);
+    nh.getParam(param_ns+"inplane_sigma_factor", inplane_sigma_factor);
+    nh.getParam(param_ns+"center_sigma_factor", center_sigma_factor);
+    nh.getParam(param_ns+"orientation_sigma_factor", orientation_sigma_factor);
     return true;
 }
 
@@ -94,10 +122,10 @@ void PCLCube::generatePlanePoints(pcl::PointNormal center, int index){
             float n2_factor = scale*(1.0*j/width-0.5);
             pcl::PointXYZRGB point;
             if (noise){
-                float normal_sigma = NORMAL_SIGMA_FACTOR*scale;
-                float inplane_sigma = INPLANE_SIGMA_FACTOR*scale;
+                float normal_sigma = normal_sigma_factor*scale;
+                float inplane_sigma = inplane_sigma_factor*scale;
                 if (dense){
-                    inplane_sigma = inplane_sigma/DENSE_FACTOR;
+                    inplane_sigma = inplane_sigma/dense_factor;
                 }
                 error_n1 = getGaussian(inplane_sigma);
                 error_n2 = getGaussian(inplane_sigma);
@@ -116,11 +144,11 @@ void PCLCube::generatePoints(){
     float dense_scale = scale;
     bool direction = true;
     if (dense){
-        dense_scale*=DENSE_FACTOR;
+        dense_scale*=dense_factor;
     }
     cube_cloud.header.frame_id = "laser_"+cube_name;
-    cube_cloud.height = POINTS_PER_UNIT*dense_scale;
-    cube_cloud.width = 6*POINTS_PER_UNIT*dense_scale;
+    cube_cloud.height = points_per_unit*dense_scale;
+    cube_cloud.width = 6*points_per_unit*dense_scale;
     cube_cloud.points.resize(cube_cloud.width*cube_cloud.height);
     for (int i=0; i<6; ++i){
         generatePlanePoints(findFaceCenter(i/2, direction), i);
@@ -149,8 +177,9 @@ void PCLCube::addNoise(GaussianGen& gen){
 }
 
 void PCLCube::addNoiseToCenter(){
+    center_noise = true;
     pcl::PointXYZ new_center;
-    float center_sigma = CENTER_SIGMA_FACTOR*scale;
+    float center_sigma = center_sigma_factor*scale;
     new_center.x = cube_center.x + getGaussian(center_sigma);
     new_center.y = cube_center.y + getGaussian(center_sigma);
     new_center.z = cube_center.z + getGaussian(center_sigma);
@@ -163,8 +192,9 @@ void PCLCube::addNoiseToCenter(GaussianGen& gen){
 }
 
 void PCLCube::addNoiseToOrientation(){
+    center_noise = true;
     Eigen::Quaterniond err_rot;
-    double orient_sigma = ORIENTATION_SIGMA_FACTOR;
+    double orient_sigma = orientation_sigma_factor;
     err_rot.w() = (double) 1;
     err_rot.x() = (double) getGaussian(orient_sigma);
     err_rot.y() = (double) getGaussian(orient_sigma);

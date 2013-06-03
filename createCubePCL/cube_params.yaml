@@ -1,0 +1,23 @@
+cube1:
+    scale: 1.0
+    noise: true
+    center_noise: false
+    dense: false
+    dense_factor: 16
+    points_per_unit: 32
+    normal_sigma_factor: 0.004
+    inplane_sigma_factor: 0.004
+    center_sigma_factor: 0.1
+    orientation_sigma_factor: 0.01
+
+cube2:
+    scale: 1.0
+    noise: false
+    center_noise: false
+    dense: false
+    dense_factor: 16
+    points_per_unit: 32
+    normal_sigma_factor: 0
+    inplane_sigma_factor: 0
+    center_sigma_factor: 0
+    orientation_sigma_factor: 0

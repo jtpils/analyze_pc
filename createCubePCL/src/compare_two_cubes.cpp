@@ -10,8 +10,8 @@ int main (int argc, char ** argv){
     world_cube_orientation.setIdentity();
     PCLCube* c1 = new PCLCube("cube1");
     PCLCube* c2 = new PCLCube("cube2");
-    c1->addNoiseToCenter(generator);
-    c1->addNoiseToOrientation(generator);
+    //c1->addNoiseToCenter(generator);
+    //c1->addNoiseToOrientation(generator);
     c1->addNoise(generator);
     c1->changeCenterTo(world_cube_center, true);
     c1->changeOrientationBy(world_cube_orientation, true);

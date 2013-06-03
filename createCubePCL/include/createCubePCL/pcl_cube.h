@@ -59,11 +59,13 @@ class PCLCube{
     double getGaussian(double);
     void getTransform();
     bool regenerateCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
+    bool setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
 
     ros::NodeHandle nh;
     //ros::AsyncSpinner _spinner; //TODO: ignore
     ros::Publisher point_cloud_pub; // ros publisher to  publish the cube cloud
     ros::ServiceServer regenerate_points_server;
+    ros::ServiceServer get_parameters_server;
     tf::TransformListener listener;
     tf::StampedTransform world_to_frame_transform;
     pcl::PointCloud<pcl::PointXYZRGB> cube_cloud; // the cube cloud
@@ -76,11 +78,18 @@ class PCLCube{
     NormalDist gaussian_dist;
     GaussianGen *generator;
 
-    float scale;
+    double scale;
     bool dense;
     bool noise;
+    bool center_noise;
     uint32_t rgb;
     std::string cube_name;
+    int dense_factor;
+    int points_per_unit;
+    double normal_sigma_factor;
+    double inplane_sigma_factor;
+    double center_sigma_factor;
+    double orientation_sigma_factor;
 
 };
 #endif
