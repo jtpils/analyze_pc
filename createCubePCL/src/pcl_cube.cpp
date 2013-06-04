@@ -113,8 +113,8 @@ void PCLCube::generatePlanePoints(pcl::PointNormal center, int index){
     pcl::Normal n1 = cube_axes[(index/2+1)%3];
     pcl::Normal n2 = cube_axes[(index/2+2)%3];
     pcl::Normal n3 = cube_axes[(index/2+3)%3];
-    size_t width = cube_cloud.width/6;
-    size_t height = cube_cloud.height;
+    size_t width = sqrt(cube_cloud.width/6);
+    size_t height = width;//cube_cloud.height;
     float error_n1=0, error_n2=0, error_n3=0;
     for (size_t i=index*width; i<(index+1)*width; ++i){
         float n1_factor = scale*(1.0*i/width-index-0.5);
@@ -135,7 +135,7 @@ void PCLCube::generatePlanePoints(pcl::PointNormal center, int index){
             point.x = center.x + (n1_factor+error_n1)*n1.normal[0] + (n2_factor+error_n2)*n2.normal[0] + error_n3*n3.normal[0];
             point.y = center.y + (n1_factor+error_n1)*n1.normal[1] + (n2_factor+error_n2)*n2.normal[1] + error_n3*n3.normal[1];
             point.z = center.z + (n1_factor+error_n1)*n1.normal[2] + (n2_factor+error_n2)*n2.normal[2]+error_n3*n3.normal[2];
-            cube_cloud(i,j) = point;
+            cube_cloud[i*width+j] = point;
         }
     }
 }
@@ -147,8 +147,8 @@ void PCLCube::generatePoints(){
         dense_scale*=dense_factor;
     }
     cube_cloud.header.frame_id = "laser_"+cube_name;
-    cube_cloud.height = points_per_unit*dense_scale;
-    cube_cloud.width = 6*points_per_unit*dense_scale;
+    cube_cloud.width = 6*(points_per_unit*dense_scale)*(points_per_unit*dense_scale);
+    cube_cloud.height = 1;
     cube_cloud.points.resize(cube_cloud.width*cube_cloud.height);
     for (int i=0; i<6; ++i){
         generatePlanePoints(findFaceCenter(i/2, direction), i);
@@ -221,11 +221,9 @@ void PCLCube::changeCenterTo(pcl::PointXYZ new_center, bool world){
     diff_centers.y = new_center.y - cube_center.y;
     diff_centers.z = new_center.z - cube_center.z;
     for (size_t i=0; i<cube_cloud.width; ++i){
-        for (size_t j=0; j<cube_cloud.height; ++j){
-            cube_cloud(i,j).x = cube_cloud(i,j).x + diff_centers.x;
-            cube_cloud(i,j).y = cube_cloud(i,j).y + diff_centers.y;
-            cube_cloud(i,j).z = cube_cloud(i,j).z + diff_centers.z;
-        }
+        cube_cloud[i].x = cube_cloud[i].x + diff_centers.x;
+        cube_cloud[i].y = cube_cloud[i].y + diff_centers.y;
+        cube_cloud[i].z = cube_cloud[i].z + diff_centers.z;
     }
     cube_center = new_center;
 }
@@ -258,10 +256,8 @@ void PCLCube::changeOrientationBy(Eigen::Quaterniond rot, bool world){
 
 void PCLCube::colorIt(uint8_t r, uint8_t g, uint8_t b){
     for (size_t i=0; i<cube_cloud.width; ++i){
-        for (size_t j=0; j<cube_cloud.height; ++j){
-            rgb = ((uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b);
-            cube_cloud(i,j).rgb = *reinterpret_cast<float*>(&rgb);
-        }
+        rgb = ((uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b);
+        cube_cloud[i].rgb = *reinterpret_cast<float*>(&rgb);
     }
 }
 
@@ -271,9 +267,7 @@ void PCLCube::colorIt(uint32_t _rgb){
 
 void PCLCube::colorIt(){
     for (size_t i=0; i<cube_cloud.width; ++i){
-        for (size_t j=0; j<cube_cloud.height; ++j){
-            cube_cloud(i,j).rgb = *reinterpret_cast<float*>(&rgb);
-        }
+        cube_cloud[i].rgb = *reinterpret_cast<float*>(&rgb);
     }
 }
 
