@@ -18,6 +18,7 @@ qd_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
     gt_cloud_sub = nh.subscribe(gt_cloud_topic_name, 1, &AnalyzePC::gtCloudCb, this);
     qd_cloud_sub = nh.subscribe(qd_cloud_topic_name, 1, &AnalyzePC::qdCloudCb, this);
     vis_pub = nh.advertise<visualization_msgs::Marker>("/cloud_vis_marker",1, this);
+    kp_pub = nh.advertise<sensor_msgs::PointCloud2>("/kp_cloud",1);
 }
 
 void AnalyzePC::gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
@@ -106,17 +107,27 @@ void AnalyzePC::visualizeError(){
         marker.colors.push_back(c);
         avg_error = (avg_error*i + error_data[i])/(i+1);
     }
-    ROS_INFO("Average error is %f \n",avg_error);
+    ROS_INFO("Average error is %f",avg_error);
     vis_pub.publish(marker);
 }
 
 void AnalyzePC::showKeyPoints(){
     pcl::HarrisKeypoint3D<pcl::PointXYZRGB, pcl::PointXYZI, pcl::PointNormal> hkp;
     //hkp.initCompute();
+    //pcl::KdTreeFLANN<pcl::PointXYZRGB>::Ptr kdt_ptr;
+    //kdt_ptr->setInputCloud(gt_cloud);
     pcl::PointCloud<pcl::PointXYZI> keypoints;
-    hkp.setSearchSurface(gt_cloud);
+    keypoints.header.frame_id="/world";
+    hkp.setInputCloud(qd_cloud);
+    //hkp.setSearchSurface(gt_cloud);
+    //hkp.setSearchMethod(kdt_ptr);
     hkp.compute(keypoints);
     std::cerr << keypoints.points.size() << "\n";
+    std::cerr << qd_cloud->points.size() << "\n";
+    sensor_msgs::PointCloud2 kp_pc;
+    pcl::toROSMsg(keypoints, kp_pc);
+    kp_pub.publish(kp_pc);
+
 }
 
 tf::StampedTransform getTransform(std::string from_frame, std::string to_frame){
