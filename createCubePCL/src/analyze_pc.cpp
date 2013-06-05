@@ -32,7 +32,7 @@ void AnalyzePC::visualizeError(){
     if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
         return;
     }
-    kdtree.setInputCloud(qd_cloud);
+    kdtree.setInputCloud(gt_cloud);
     visualization_msgs::Marker marker;
     marker.header.frame_id = WORLD_FRAME;
     marker.header.stamp = ros::Time();
@@ -52,35 +52,35 @@ void AnalyzePC::visualizeError(){
 
     tf::StampedTransform tgw = getTransform(gt_cloud->header.frame_id, WORLD_FRAME);
     tf::StampedTransform tqw = getTransform(qd_cloud->header.frame_id, WORLD_FRAME);
-    tf::StampedTransform tgq = getTransform(gt_cloud->header.frame_id, qd_cloud->header.frame_id);
+    tf::StampedTransform tqg = getTransform(qd_cloud->header.frame_id, gt_cloud->header.frame_id);
     std_msgs::ColorRGBA c;
 
     if (gt_cloud->width == qd_cloud->width && gt_cloud->height == qd_cloud->height){
-        for (size_t i=0; i<gt_cloud->width; ++i){
+        for (size_t i=0; i<qd_cloud->width; ++i){
             geometry_msgs::Point p;
-            p.x = gt_cloud->points[i].x;
-            p.y = gt_cloud->points[i].y;
-            p.z = gt_cloud->points[i].z;
-            transformFromTo(p,tgw);
+            p.x = qd_cloud->points[i].x;
+            p.y = qd_cloud->points[i].y;
+            p.z = qd_cloud->points[i].z;
+            transformFromTo(p,tqw);
             marker.points.push_back(p);
             geometry_msgs::Point q;
-            pcl::PointXYZRGB searchPoint = gt_cloud->points[i];
-            transformFromTo(searchPoint, tgq);
+            pcl::PointXYZRGB searchPoint = qd_cloud->points[i];
+            transformFromTo(searchPoint, tqg);
             int K=1;
             std::vector<int> pointIdxNKNSearch(K);
             std::vector<float> pointNKNSquaredDistance(K);
             if ( kdtree.nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
-                q.x = qd_cloud->points[pointIdxNKNSearch[0]].x;
-                q.y = qd_cloud->points[pointIdxNKNSearch[0]].y;
-                q.z = qd_cloud->points[pointIdxNKNSearch[0]].z;
+                q.x = gt_cloud->points[pointIdxNKNSearch[0]].x;
+                q.y = gt_cloud->points[pointIdxNKNSearch[0]].y;
+                q.z = gt_cloud->points[pointIdxNKNSearch[0]].z;
             }
-            transformFromTo(q,tqw);
+            transformFromTo(q,tgw);
             // Not assuming exact correspondence
 #ifdef CORRESPONDENCE_ONLY
-            q.x = qd_cloud->points[i].x;
-            q.y = qd_cloud->points[i].y;
-            q.z = qd_cloud->points[i].z;
-            transformFromTo(q,tqw);
+            q.x = gt_cloud->points[i].x;
+            q.y = gt_cloud->points[i].y;
+            q.z = gt_cloud->points[i].z;
+            transformFromTo(q,tgw);
 #endif
             marker.points.push_back(q);
             float error = (p.x-q.x)*(p.x-q.x)+(p.y-q.y)*(p.y-q.y)+(p.z-q.z)*(p.z-q.z);
@@ -111,11 +111,12 @@ void AnalyzePC::visualizeError(){
 }
 
 void AnalyzePC::showKeyPoints(){
-    pcl::HarrisKeypoint3D<PointT, PointT, NormalT> hkp;
-    hkp.initCompute();
-    pcl::PointCloud<pcl::PointXYZRGB> keypoints;
+    pcl::HarrisKeypoint3D<pcl::PointXYZRGB, pcl::PointXYZI, pcl::PointNormal> hkp;
+    //hkp.initCompute();
+    pcl::PointCloud<pcl::PointXYZI> keypoints;
     hkp.setSearchSurface(gt_cloud);
-    hkp.detectKeypoints(keypoints);
+    hkp.compute(keypoints);
+    std::cerr << keypoints.points.size() << "\n";
 }
 
 tf::StampedTransform getTransform(std::string from_frame, std::string to_frame){
