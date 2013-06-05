@@ -14,6 +14,7 @@ class AnalyzePC {
     ros::Subscriber qd_cloud_sub;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr gt_cloud;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr qd_cloud;
+    std::vector<float> error_data;
 
     pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
 

@@ -44,10 +44,15 @@ void AnalyzePC::visualizeError(){
     marker.color.b = 1.0;
     marker.color.a = 1.0;
     marker.points.clear();
+    marker.colors.clear();
+    error_data.clear();
+    float min_error = FLT_MAX;
+    float max_error = 0.0;
 
     tf::StampedTransform tgw = getTransform(gt_cloud->header.frame_id, WORLD_FRAME);
     tf::StampedTransform tqw = getTransform(qd_cloud->header.frame_id, WORLD_FRAME);
     tf::StampedTransform tgq = getTransform(gt_cloud->header.frame_id, qd_cloud->header.frame_id);
+    std_msgs::ColorRGBA c;
 
     if (gt_cloud->width == qd_cloud->width && gt_cloud->height == qd_cloud->height){
         for (size_t i=0; i<gt_cloud->width; ++i){
@@ -57,29 +62,50 @@ void AnalyzePC::visualizeError(){
             p.z = gt_cloud->points[i].z;
             transformFromTo(p,tgw);
             marker.points.push_back(p);
-            /* Not assuming exact correspondence
-            p.x = qd_cloud->points[i].x;
-            p.y = qd_cloud->points[i].y;
-            p.z = qd_cloud->points[i].z;
-            transformFromTo(p,tqw);
-            */
+            geometry_msgs::Point q;
             pcl::PointXYZRGB searchPoint = gt_cloud->points[i];
             transformFromTo(searchPoint, tgq);
             int K=1;
             std::vector<int> pointIdxNKNSearch(K);
             std::vector<float> pointNKNSquaredDistance(K);
             if ( kdtree.nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
-                p.x = qd_cloud->points[pointIdxNKNSearch[0]].x;
-                p.y = qd_cloud->points[pointIdxNKNSearch[0]].y;
-                p.z = qd_cloud->points[pointIdxNKNSearch[0]].z;
+                q.x = qd_cloud->points[pointIdxNKNSearch[0]].x;
+                q.y = qd_cloud->points[pointIdxNKNSearch[0]].y;
+                q.z = qd_cloud->points[pointIdxNKNSearch[0]].z;
             }
-            transformFromTo(p,tqw);
-            marker.points.push_back(p);
+            transformFromTo(q,tqw);
+            // Not assuming exact correspondence
+#ifdef CORRESPONDENCE_ONLY
+            q.x = qd_cloud->points[i].x;
+            q.y = qd_cloud->points[i].y;
+            q.z = qd_cloud->points[i].z;
+            transformFromTo(q,tqw);
+#endif
+            marker.points.push_back(q);
+            float error = (p.x-q.x)*(p.x-q.x)+(p.y-q.y)*(p.y-q.y)+(p.z-q.z)*(p.z-q.z);
+            if (error > max_error){
+                max_error = error;
+            }
+            if (error < min_error){
+                min_error = error;
+            }
+            error_data.push_back(error);
         }
     }
     else{
         ROS_ERROR("PointClouds are not registered");
     }
+    float avg_error = 0.0;
+    for (size_t i=0; i<error_data.size(); ++i){
+        c.r = 1.0*(error_data[i]-min_error)/(max_error-min_error);
+        c.g = 0.0;
+        c.b = 1.0*(max_error-error_data[i])/(max_error-min_error);
+        c.a = 1.0;
+        marker.colors.push_back(c);
+        marker.colors.push_back(c);
+        avg_error = (avg_error*i + error_data[i])/(i+1);
+    }
+    ROS_INFO("Average error is %f \n",avg_error);
     vis_pub.publish(marker);
 }
 
