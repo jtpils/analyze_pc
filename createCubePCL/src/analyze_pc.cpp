@@ -18,7 +18,8 @@ qd_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
     gt_cloud_sub = nh.subscribe(gt_cloud_topic_name, 1, &AnalyzePC::gtCloudCb, this);
     qd_cloud_sub = nh.subscribe(qd_cloud_topic_name, 1, &AnalyzePC::qdCloudCb, this);
     vis_pub = nh.advertise<visualization_msgs::Marker>("/cloud_vis_marker",1, this);
-    kp_pub = nh.advertise<sensor_msgs::PointCloud2>("/kp_cloud",1);
+    kpg_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+(std::string)GT_CUBE+"/kp_cloud",1);
+    kpq_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+(std::string)QD_CUBE+"/kp_cloud",1);
 }
 
 void AnalyzePC::gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
@@ -113,23 +114,21 @@ void AnalyzePC::visualizeError(){
 
 void AnalyzePC::showKeyPoints(){
     pcl::HarrisKeypoint3D<pcl::PointXYZRGB, pcl::PointXYZI, pcl::PointNormal> hkp;
-    //hkp.initCompute();
-    //pcl::KdTreeFLANN<pcl::PointXYZRGB>::Ptr kdt_ptr;
-    //kdt_ptr->setInputCloud(gt_cloud);
     pcl::PointCloud<pcl::PointXYZI> keypoints;
-    keypoints.header.frame_id=gt_cloud->header.frame_id;
-    //hkp.setInputCloud(qd_cloud);
-    hkp.setInputCloud(gt_cloud);
-    hkp.setRadius(0.3);
-    //hkp.setSearchSurface(gt_cloud);
-    //hkp.setSearchMethod(kdt_ptr);
-    hkp.compute(keypoints);
-    std::cerr << keypoints.points.size() << "\n";
-    std::cerr << qd_cloud->points.size() << "\n";
     sensor_msgs::PointCloud2 kp_pc;
-    pcl::toROSMsg(keypoints, kp_pc);
-    kp_pub.publish(kp_pc);
+    hkp.setRadius(0.3);
 
+    hkp.setInputCloud(gt_cloud);
+    hkp.compute(keypoints);
+    keypoints.header.frame_id=gt_cloud->header.frame_id;
+    pcl::toROSMsg(keypoints, kp_pc);
+    kpg_pub.publish(kp_pc);
+
+    hkp.setInputCloud(qd_cloud);
+    hkp.compute(keypoints);
+    keypoints.header.frame_id=qd_cloud->header.frame_id;
+    pcl::toROSMsg(keypoints, kp_pc);
+    kpq_pub.publish(kp_pc);
 }
 
 tf::StampedTransform getTransform(std::string from_frame, std::string to_frame){
