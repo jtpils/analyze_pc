@@ -1,6 +1,7 @@
 #include <createCubePCL/pcl_cube.h>
 #include <visualization_msgs/Marker.h>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/keypoints/harris_keypoint3D.h>
 
 class AnalyzePC {
   public:
@@ -21,4 +22,5 @@ class AnalyzePC {
     void gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
     void qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
     void visualizeError();
+    void showKeyPoints();
 };
