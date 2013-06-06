@@ -7,6 +7,7 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/keypoints/harris_keypoint3D.h>
 #include <pcl/features/fpfh.h>
+#include <pcl/visualization/histogram_visualizer.h>
 
 class AnalyzePC {
   public:
@@ -30,6 +31,7 @@ class AnalyzePC {
     pcl::PointCloud<pcl::PointXYZI> keypoints_qd;
     pcl::PointCloud<pcl::FPFHSignature33> fpfhs_gt;
     pcl::PointCloud<pcl::FPFHSignature33> fpfhs_qd;
+    pcl::visualization::PCLHistogramVisualizer hist;
 
     void gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
     void qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
@@ -41,4 +43,6 @@ class AnalyzePC {
     double harris_radius;
     double normal_estimation_radius;
     double fpfh_estimation_radius;
+
+    bool feature_added;
 };

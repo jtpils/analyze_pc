@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.4.6)
 include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 
+find_package(VTK REQUIRED)
+include_directories(${VTK_INCLUDE_DIRS})
+
 # Set the build type.  Options are:
 #  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
 #  Debug          : w/ debug symbols, w/o optimization
@@ -44,3 +47,4 @@ target_link_libraries(publish_cube pclcube)
 rosbuild_add_executable(compare_two_cubes src/compare_two_cubes.cpp)
 target_link_libraries(compare_two_cubes pclcube)
 rosbuild_add_executable(analyze_pc src/analyze_pc.cpp src/dm_colors.hpp include/createCubePCL/analyze_pc.h)
+target_link_libraries(analyze_pc ${VTK_LIBRARIES})
