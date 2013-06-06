@@ -39,7 +39,7 @@ class PCLCube{
     void colorIt(uint32_t);
     void colorIt();
     void changeCenterTo(pcl::PointXYZ, bool world=false);
-    void changeCenterBy(pcl::PointXYZ);
+    void changeCenterBy(pcl::PointXYZ, bool world=false);
     void changeOrientationBy(Eigen::Quaterniond, bool world=false);
     void publishPointCloud(); // publishes the pcl point cloud after converting to sensor_msgs::PointCloud2
     void generatePoints(); //generates the points of the cube pointcloud
@@ -70,7 +70,10 @@ class PCLCube{
     tf::StampedTransform world_to_frame_transform;
     pcl::PointCloud<pcl::PointXYZRGB> cube_cloud; // the cube cloud
     pcl::PointXYZ cube_center; // Cube center 
-    Eigen::Quaternionf cube_orientation;
+    Eigen::Quaterniond cube_orientation;
+
+    pcl::PointXYZ world_center;
+    Eigen::Quaterniond world_orientation;
 
     pcl::Normal cube_axes[3]; // vectors along the sides. Any two would define the cube
 
