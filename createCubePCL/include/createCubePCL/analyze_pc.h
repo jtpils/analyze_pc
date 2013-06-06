@@ -39,4 +39,6 @@ class AnalyzePC {
     void estimateFPFHFeatures();
 
     double harris_radius;
+    double normal_estimation_radius;
+    double fpfh_estimation_radius;
 };
