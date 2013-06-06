@@ -151,6 +151,26 @@ void AnalyzePC::showKeyPoints(){
 }
 
 void AnalyzePC::estimateFPFHFeatures(){
+    pcl::FPFHEstimation<pcl::PointXYZRGB, pcl::Normal, pcl::FPFHSignature33> fpfh;
+    pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>());
+    pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> normal_estimation;
+    pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB>());
+
+    normal_estimation.setInputCloud(gt_cloud);
+    normal_estimation.setSearchMethod(tree);
+    normal_estimation.setRadiusSearch(0.2);
+    normal_estimation.compute(*normals);
+    fpfh.setInputCloud(gt_cloud);
+    fpfh.setInputNormals(normals);
+    fpfh.setSearchMethod(tree);
+    fpfh.setRadiusSearch(0.3);
+    fpfh.compute(fpfhs_gt);
+
+    normal_estimation.setInputCloud(qd_cloud);
+    normal_estimation.compute(*normals);
+    fpfh.setInputCloud(qd_cloud);
+    fpfh.setInputNormals(normals);
+    fpfh.compute(fpfhs_qd);
 
 }
 
