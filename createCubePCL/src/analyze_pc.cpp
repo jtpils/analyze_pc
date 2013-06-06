@@ -1,9 +1,11 @@
 #include <createCubePCL/analyze_pc.h>
+#include "dm_colors.hpp"
 
 #define GT_CUBE "cube2"
 #define QD_CUBE "cube1"
 #define WORLD_FRAME "/world"
 //#define CORRESPONDENCE_ONLY
+//#define ERROR_LINES_DISPLAY
 
 void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t);
 void transformFromTo(pcl::PointXYZRGB& p, tf::StampedTransform t);
@@ -40,8 +42,15 @@ void AnalyzePC::visualizeError(){
     marker.header.stamp = ros::Time();
     marker.ns = "cube_error";
     marker.id = 0;
+    marker.type = visualization_msgs::Marker::POINTS;
+#ifdef ERROR_LINES_DISPLAY
     marker.type = visualization_msgs::Marker::LINE_LIST;
+#endif
+    marker.scale.x = 0.01;
+    marker.scale.y = 0.01;
+#ifdef ERROR_LINES_DISPLAY
     marker.scale.x = 0.001;
+#endif
     marker.color.r = 0.0;
     marker.color.g = 0.0;
     marker.color.b = 1.0;
@@ -84,7 +93,9 @@ void AnalyzePC::visualizeError(){
             q.z = gt_cloud->points[i].z;
             transformFromTo(q,tgw);
 #endif
+#ifdef ERROR_LINES_DISPLAY
             marker.points.push_back(q);
+#endif
             float error = (p.x-q.x)*(p.x-q.x)+(p.y-q.y)*(p.y-q.y)+(p.z-q.z)*(p.z-q.z);
             if (error > max_error){
                 max_error = error;
@@ -100,12 +111,16 @@ void AnalyzePC::visualizeError(){
     }
     float avg_error = 0.0;
     for (size_t i=0; i<error_data.size(); ++i){
-        c.r = 1.0*(error_data[i]-min_error)/(max_error-min_error);
-        c.g = 0.0;
-        c.b = 1.0*(max_error-error_data[i])/(max_error-min_error);
+        float rgb[3];
+        dm::colormap(error_data[i], min_error, max_error, dm::line_colormap, rgb);
+        c.r = rgb[0];
+        c.g = rgb[1];
+        c.b = rgb[2];
         c.a = 1.0;
         marker.colors.push_back(c);
+#ifdef ERROR_LINES_DISPLAY
         marker.colors.push_back(c);
+#endif
         avg_error = (avg_error*i + error_data[i])/(i+1);
     }
     ROS_INFO("Average error is %f",avg_error);
