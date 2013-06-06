@@ -6,6 +6,8 @@
 #define WORLD_FRAME "/world"
 //#define CORRESPONDENCE_ONLY
 //#define ERROR_LINES_DISPLAY
+//#define VIEW_FPFH_HISTOGRAMS
+//#define SAVE_FPFH_HISTOGRAMS
 
 void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t);
 void transformFromTo(pcl::PointXYZRGB& p, tf::StampedTransform t);
@@ -160,7 +162,7 @@ void AnalyzePC::showKeyPoints(){
     hkp.compute(keypoints_qd);
     keypoints_qd.header.frame_id=qd_cloud->header.frame_id;
     pcl::toROSMsg(keypoints_qd, kp_pc);
-    kpq_pub.publish(kp_pc);
+    //kpq_pub.publish(kp_pc);
 }
 
 void AnalyzePC::estimateFPFHFeatures(){
@@ -194,6 +196,12 @@ void AnalyzePC::estimateFPFHFeatures(){
     fpfh.setRadiusSearch(fpfh_estimation_radius);
     fpfh.compute(fpfhs_qd);
 
+#ifdef SAVE_FPFH_HISTOGRAMS
+        pcl::io::savePCDFileASCII ("fpfhs_gt.pcd", fpfhs_gt);
+        pcl::io::savePCDFileASCII ("fpfhs_qd.pcd", fpfhs_qd);
+#endif
+
+#ifdef VIEW_FPFH_HISTOGRAMS
     if (!feature_added){
         hist.addFeatureHistogram (fpfhs_gt, 33 , "fpfh_dist_gt", 640, 200);
         hist.addFeatureHistogram (fpfhs_qd, 33 , "fpfh_dist_qd", 640, 200);
@@ -202,6 +210,7 @@ void AnalyzePC::estimateFPFHFeatures(){
         hist.updateFeatureHistogram (fpfhs_gt, 33 , "fpfh_dist_gt");
         hist.updateFeatureHistogram (fpfhs_qd, 33 , "fpfh_dist_qd");
     }
+#endif
 }
 
 bool AnalyzePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
@@ -245,7 +254,9 @@ void AnalyzePC::spin(){
         visualizeError();
         showKeyPoints();
         estimateFPFHFeatures();
+#ifdef VIEW_FPFH_HISTOGRAMS
         hist.spinOnce(10);
+#endif
         ROS_INFO(" ");
         loop_rate.sleep();
     }

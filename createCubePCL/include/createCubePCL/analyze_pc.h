@@ -8,6 +8,7 @@
 #include <pcl/keypoints/harris_keypoint3D.h>
 #include <pcl/features/fpfh.h>
 #include <pcl/visualization/histogram_visualizer.h>
+#include <pcl/io/pcd_io.h>
 
 class AnalyzePC {
   public:
