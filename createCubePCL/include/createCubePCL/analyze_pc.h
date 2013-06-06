@@ -25,12 +25,15 @@ class AnalyzePC {
     std::vector<float> error_data;
 
     pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+    pcl::PointCloud<pcl::PointXYZI> keypoints_gt;
+    pcl::PointCloud<pcl::PointXYZI> keypoints_qd;
 
     void gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
     void qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
     bool setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
     void visualizeError();
     void showKeyPoints();
+    void estimateFPFHFeatures();
 
     double harris_radius;
 };
