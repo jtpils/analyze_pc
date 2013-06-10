@@ -188,13 +188,19 @@ void AnalyzePC::estimateFPFHFeatures(){
     normal_estimation.setSearchMethod(tree);
     normal_estimation.setRadiusSearch(normal_estimation_radius);
     normal_estimation.compute(*normals);
+    pcl::IndicesPtr ind(new std::vector<int>);
+    ind->push_back(0);
+    ind->push_back(1);
+    ind->push_back(2);
+    fpfh.setIndices(ind);
     fpfh.setInputCloud(gt_cloud);
     fpfh.setInputNormals(normals);
     fpfh.setSearchMethod(tree);
     fpfh.setRadiusSearch(fpfh_estimation_radius);
     fpfh.compute(fpfhs_gt);
 
-    ROS_INFO("Found GT_CLOUD feature histogram");
+
+    ROS_INFO("Found GT_CLOUD feature histogram %d",fpfhs_gt.size());
 #ifdef SAVE_FPFH_HISTOGRAMS
     pcl::io::savePCDFileASCII ("fpfhs_gt.pcd", fpfhs_gt);
 #endif
@@ -273,7 +279,7 @@ void AnalyzePC::spin(){
         ros::spinOnce();
         //visualizeError();
         showKeyPoints();
-        estimateFPFHFeatures();
+        //estimateFPFHFeatures();
 #ifdef VIEW_FPFH_HISTOGRAMS
         hist.spinOnce(10);
 #endif
