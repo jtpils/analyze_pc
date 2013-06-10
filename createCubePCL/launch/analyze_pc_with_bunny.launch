@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+
+<launch>
+    <env name="GT_NAME" value="bunny000"/>
+    <rosparam file="$(find createCubePCL)/cube_params.yaml" command="load"/>
+    <include file="$(find createCubePCL)/launch/bunny_pub.launch"/>
+      <node pkg="createCubePCL" name="analyze_pc" type="analyze_pc" args="$(optenv GT_NAME bunny000) $(optenv QD_NAME bunny090)" output="screen"/>
+      <node pkg="rviz" name="rviz" type="rviz" args="-d $(find createCubePCL)/rviz/kp_cubes.vcg" />
+</launch>
