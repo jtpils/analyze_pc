@@ -150,20 +150,26 @@ void AnalyzePC::showKeyPoints(){
     ROS_INFO("Finding the keypoints");
     //
     pcl::HarrisKeypoint3D<Point, pcl::PointXYZI, pcl::PointNormal> hkp;
+    pcl::search::KdTree<Point>::Ptr tree(new pcl::search::KdTree<Point>());
     sensor_msgs::PointCloud2 kp_pc;
     hkp.setRadius(harris_radius);
+    hkp.setSearchMethod(tree);
 
     hkp.setInputCloud(gt_cloud);
     hkp.compute(keypoints_gt);
     keypoints_gt.header.frame_id=gt_cloud->header.frame_id;
     pcl::toROSMsg(keypoints_gt, kp_pc);
     kpg_pub.publish(kp_pc);
+    pcl::io::savePCDFileASCII ("kp_gt.pcd", keypoints_gt);
+    ROS_INFO("Found GT_CLOUD keypoints");
 
     hkp.setInputCloud(qd_cloud);
     hkp.compute(keypoints_qd);
     keypoints_qd.header.frame_id=qd_cloud->header.frame_id;
     pcl::toROSMsg(keypoints_qd, kp_pc);
-    //kpq_pub.publish(kp_pc);
+    kpq_pub.publish(kp_pc);
+    pcl::io::savePCDFileASCII ("kp_qd.pcd", keypoints_qd);
+    ROS_INFO("Found QD_CLOUD keypoints");
 }
 
 void AnalyzePC::estimateFPFHFeatures(){
