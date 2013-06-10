@@ -5,7 +5,7 @@
 //#define CORRESPONDENCE_ONLY
 //#define ERROR_LINES_DISPLAY
 //#define VIEW_FPFH_HISTOGRAMS
-//#define SAVE_FPFH_HISTOGRAMS
+#define SAVE_FPFH_HISTOGRAMS
 
 void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t);
 tf::StampedTransform getTransform(std::string from_frame, std::string to_frame);
@@ -29,12 +29,13 @@ qd_cloud(new pcl::PointCloud<Point>)
 
     harris_radius = 0.01;
     nh.setParam("/analyze_pc/harris_radius", harris_radius);
-    normal_estimation_radius = 0.2;
+    normal_estimation_radius = 0.01;
     nh.setParam("/analyze_pc/normal_estimation_radius", normal_estimation_radius);
-    fpfh_estimation_radius = 0.4;
+    fpfh_estimation_radius = 0.03;
     nh.setParam("/analyze_pc/fpfh_estimation_radius", fpfh_estimation_radius);
 
-    feature_added = false;
+    feature_added_gt = false;
+    feature_added_qd = false;
 }
 
 void AnalyzePC::gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
@@ -161,7 +162,7 @@ void AnalyzePC::showKeyPoints(){
     pcl::toROSMsg(keypoints_gt, kp_pc);
     kpg_pub.publish(kp_pc);
     pcl::io::savePCDFileASCII ("kp_gt.pcd", keypoints_gt);
-    ROS_INFO("Found GT_CLOUD keypoints");
+    ROS_INFO("Found GT_CLOUD keypoints :%d", keypoints_gt.points.size());
 
     hkp.setInputCloud(qd_cloud);
     hkp.compute(keypoints_qd);
@@ -169,7 +170,7 @@ void AnalyzePC::showKeyPoints(){
     pcl::toROSMsg(keypoints_qd, kp_pc);
     kpq_pub.publish(kp_pc);
     pcl::io::savePCDFileASCII ("kp_qd.pcd", keypoints_qd);
-    ROS_INFO("Found QD_CLOUD keypoints");
+    ROS_INFO("Found QD_CLOUD keypoints :%d", keypoints_qd.points.size());
 }
 
 void AnalyzePC::estimateFPFHFeatures(){
@@ -193,6 +194,20 @@ void AnalyzePC::estimateFPFHFeatures(){
     fpfh.setRadiusSearch(fpfh_estimation_radius);
     fpfh.compute(fpfhs_gt);
 
+    ROS_INFO("Found GT_CLOUD feature histogram");
+#ifdef SAVE_FPFH_HISTOGRAMS
+    pcl::io::savePCDFileASCII ("fpfhs_gt.pcd", fpfhs_gt);
+#endif
+
+#ifdef VIEW_FPFH_HISTOGRAMS
+    if (!feature_added_gt){
+        hist.addFeatureHistogram (fpfhs_gt, 33 , "fpfh_dist_gt", 640, 200);
+        feature_added_gt= true;
+    }else{
+        hist.updateFeatureHistogram (fpfhs_gt, 33 , "fpfh_dist_gt");
+    }
+#endif
+
     normal_estimation.setInputCloud(qd_cloud);
     normal_estimation.setSearchMethod(tree);
     normal_estimation.setRadiusSearch(normal_estimation_radius);
@@ -203,18 +218,16 @@ void AnalyzePC::estimateFPFHFeatures(){
     fpfh.setRadiusSearch(fpfh_estimation_radius);
     fpfh.compute(fpfhs_qd);
 
+    ROS_INFO("Found QD_CLOUD feature histogram");
 #ifdef SAVE_FPFH_HISTOGRAMS
-        pcl::io::savePCDFileASCII ("fpfhs_gt.pcd", fpfhs_gt);
         pcl::io::savePCDFileASCII ("fpfhs_qd.pcd", fpfhs_qd);
 #endif
 
 #ifdef VIEW_FPFH_HISTOGRAMS
-    if (!feature_added){
-        hist.addFeatureHistogram (fpfhs_gt, 33 , "fpfh_dist_gt", 640, 200);
+    if (!feature_added_qd){
         hist.addFeatureHistogram (fpfhs_qd, 33 , "fpfh_dist_qd", 640, 200);
-        feature_added = true;
+        feature_added_qd = true;
     }else{
-        hist.updateFeatureHistogram (fpfhs_gt, 33 , "fpfh_dist_gt");
         hist.updateFeatureHistogram (fpfhs_qd, 33 , "fpfh_dist_qd");
     }
 #endif
@@ -260,7 +273,7 @@ void AnalyzePC::spin(){
         ros::spinOnce();
         //visualizeError();
         showKeyPoints();
-        //estimateFPFHFeatures();
+        estimateFPFHFeatures();
 #ifdef VIEW_FPFH_HISTOGRAMS
         hist.spinOnce(10);
 #endif
