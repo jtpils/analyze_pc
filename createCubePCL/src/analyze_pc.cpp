@@ -27,7 +27,7 @@ qd_cloud(new pcl::PointCloud<Point>)
     set_parameters_server = nh.advertiseService("/analyze_pc/set_parameters",
             &AnalyzePC::setParamCb, this);
 
-    harris_radius = 0.3;
+    harris_radius = 0.01;
     nh.setParam("/analyze_pc/harris_radius", harris_radius);
     normal_estimation_radius = 0.2;
     nh.setParam("/analyze_pc/normal_estimation_radius", normal_estimation_radius);
@@ -258,9 +258,9 @@ void AnalyzePC::spin(){
     ros::Rate loop_rate(10);
     while(ros::ok()){
         ros::spinOnce();
-        visualizeError();
+        //visualizeError();
         showKeyPoints();
-        estimateFPFHFeatures();
+        //estimateFPFHFeatures();
 #ifdef VIEW_FPFH_HISTOGRAMS
         hist.spinOnce(10);
 #endif
