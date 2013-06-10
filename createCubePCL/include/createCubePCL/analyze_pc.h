@@ -23,11 +23,11 @@ class AnalyzePC {
     ros::Subscriber gt_cloud_sub;
     ros::Subscriber qd_cloud_sub;
     ros::ServiceServer set_parameters_server;
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr gt_cloud;
-    pcl::PointCloud<pcl::PointXYZRGB>::Ptr qd_cloud;
+    pcl::PointCloud<T>::Ptr gt_cloud;
+    pcl::PointCloud<T>::Ptr qd_cloud;
     std::vector<float> error_data;
 
-    pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
+    pcl::KdTreeFLANN<T> kdtree;
     pcl::PointCloud<pcl::PointXYZI> keypoints_gt;
     pcl::PointCloud<pcl::PointXYZI> keypoints_qd;
     pcl::PointCloud<pcl::FPFHSignature33> fpfhs_gt;
@@ -40,6 +40,7 @@ class AnalyzePC {
     void visualizeError();
     void showKeyPoints();
     void estimateFPFHFeatures();
+    void transformFromTo(T& p, tf::StampedTransform t);
 
     double harris_radius;
     double normal_estimation_radius;

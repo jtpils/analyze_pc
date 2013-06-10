@@ -1,8 +1,6 @@
 #include <createCubePCL/analyze_pc.h>
 #include "dm_colors.hpp"
 
-#define GT_CLOUD "cube2"
-#define QD_CLOUD "cube1"
 #define WORLD_FRAME "/world"
 //#define CORRESPONDENCE_ONLY
 //#define ERROR_LINES_DISPLAY
@@ -10,20 +8,23 @@
 //#define SAVE_FPFH_HISTOGRAMS
 
 void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t);
-void transformFromTo(pcl::PointXYZRGB& p, tf::StampedTransform t);
 tf::StampedTransform getTransform(std::string from_frame, std::string to_frame);
 
+std::string gt_name;
+std::string qd_name;
+
+template<class T>
 AnalyzePC::AnalyzePC():
-gt_cloud(new pcl::PointCloud<pcl::PointXYZRGB>),
-qd_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
+gt_cloud(new pcl::PointCloud<T>),
+qd_cloud(new pcl::PointCloud<T>)
 {
-    std::string gt_cloud_topic_name = "/"+(std::string)GT_CLOUD+"/cloud";
-    std::string qd_cloud_topic_name = "/"+(std::string)QD_CLOUD+"/cloud";
+    std::string gt_cloud_topic_name = "/"+gt_name+"/cloud";
+    std::string qd_cloud_topic_name = "/"+qd_name+"/cloud";
     gt_cloud_sub = nh.subscribe(gt_cloud_topic_name, 1, &AnalyzePC::gtCloudCb, this);
     qd_cloud_sub = nh.subscribe(qd_cloud_topic_name, 1, &AnalyzePC::qdCloudCb, this);
     vis_pub = nh.advertise<visualization_msgs::Marker>("/cloud_vis_marker",1, this);
-    kpg_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+(std::string)GT_CLOUD+"/kp_cloud",1);
-    kpq_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+(std::string)QD_CLOUD+"/kp_cloud",1);
+    kpg_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+gt_name+"/kp_cloud",1);
+    kpq_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+qd_name+"/kp_cloud",1);
     set_parameters_server = nh.advertiseService("/analyze_pc/set_parameters",
             &AnalyzePC::setParamCb, this);
 
@@ -90,7 +91,7 @@ void AnalyzePC::visualizeError(){
             transformFromTo(p,tqw);
             marker.points.push_back(p);
             geometry_msgs::Point q;
-            pcl::PointXYZRGB searchPoint = qd_cloud->points[i];
+            T searchPoint = qd_cloud->points[i];
             transformFromTo(searchPoint, tqg);
             int K=1;
             std::vector<int> pointIdxNKNSearch(K);
@@ -148,7 +149,8 @@ void AnalyzePC::showKeyPoints(){
         return;
     }
     ROS_INFO("Finding the keypoints");
-    pcl::HarrisKeypoint3D<pcl::PointXYZRGB, pcl::PointXYZI, pcl::PointNormal> hkp;
+    //
+    pcl::HarrisKeypoint3D<T, pcl::PointXYZI, pcl::PointNormal> hkp;
     sensor_msgs::PointCloud2 kp_pc;
     hkp.setRadius(harris_radius);
 
@@ -171,10 +173,10 @@ void AnalyzePC::estimateFPFHFeatures(){
         return;
     }
     ROS_INFO("Estimating FPFH Features");
-    pcl::FPFHEstimation<pcl::PointXYZRGB, pcl::Normal, pcl::FPFHSignature33> fpfh;
+    pcl::FPFHEstimation<T, pcl::Normal, pcl::FPFHSignature33> fpfh;
     pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>());
-    pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> normal_estimation;
-    pcl::search::KdTree<pcl::PointXYZRGB>::Ptr tree(new pcl::search::KdTree<pcl::PointXYZRGB>());
+    pcl::NormalEstimation<pcl::PointXYZI, pcl::Normal> normal_estimation;
+    pcl::search::KdTree<T>::Ptr tree(new pcl::search::KdTree<T>());
 
     normal_estimation.setInputCloud(gt_cloud);
     normal_estimation.setSearchMethod(tree);
@@ -240,7 +242,7 @@ void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t){
     //Translation done : Now rotation
 }
 
-void transformFromTo(pcl::PointXYZRGB& p, tf::StampedTransform t){
+void AnalyzePC::transformFromTo(T& p, tf::StampedTransform t){
     tf::Vector3 origin = t.getOrigin();
     p.x = p.x - origin.x();
     p.y = p.y - origin.y();
@@ -264,6 +266,12 @@ void AnalyzePC::spin(){
 
 int main (int argc, char ** argv){
     ros::init (argc, argv, "analyze_pc");
+    gt_name = "cube2";
+    qd_name = "cube1";
+    if (argc == 3){
+        gt_name = argv[1];
+        qd_name = argv[2];
+    }
     AnalyzePC test;
     test.spin();
     return 0;
