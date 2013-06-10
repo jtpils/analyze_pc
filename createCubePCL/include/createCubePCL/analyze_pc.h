@@ -10,6 +10,7 @@
 #include <pcl/visualization/histogram_visualizer.h>
 #include <pcl/io/pcd_io.h>
 
+typedef pcl::PointXYZ Point;
 class AnalyzePC {
   public:
     AnalyzePC();
@@ -23,11 +24,11 @@ class AnalyzePC {
     ros::Subscriber gt_cloud_sub;
     ros::Subscriber qd_cloud_sub;
     ros::ServiceServer set_parameters_server;
-    pcl::PointCloud<T>::Ptr gt_cloud;
-    pcl::PointCloud<T>::Ptr qd_cloud;
+    pcl::PointCloud<Point>::Ptr gt_cloud;
+    pcl::PointCloud<Point>::Ptr qd_cloud;
     std::vector<float> error_data;
 
-    pcl::KdTreeFLANN<T> kdtree;
+    pcl::KdTreeFLANN<Point> kdtree;
     pcl::PointCloud<pcl::PointXYZI> keypoints_gt;
     pcl::PointCloud<pcl::PointXYZI> keypoints_qd;
     pcl::PointCloud<pcl::FPFHSignature33> fpfhs_gt;
@@ -40,7 +41,7 @@ class AnalyzePC {
     void visualizeError();
     void showKeyPoints();
     void estimateFPFHFeatures();
-    void transformFromTo(T& p, tf::StampedTransform t);
+    void transformFromTo(Point& p, tf::StampedTransform t);
 
     double harris_radius;
     double normal_estimation_radius;

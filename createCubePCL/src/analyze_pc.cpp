@@ -13,10 +13,9 @@ tf::StampedTransform getTransform(std::string from_frame, std::string to_frame);
 std::string gt_name;
 std::string qd_name;
 
-template<class T>
 AnalyzePC::AnalyzePC():
-gt_cloud(new pcl::PointCloud<T>),
-qd_cloud(new pcl::PointCloud<T>)
+gt_cloud(new pcl::PointCloud<Point>),
+qd_cloud(new pcl::PointCloud<Point>)
 {
     std::string gt_cloud_topic_name = "/"+gt_name+"/cloud";
     std::string qd_cloud_topic_name = "/"+qd_name+"/cloud";
@@ -88,10 +87,10 @@ void AnalyzePC::visualizeError(){
             p.x = qd_cloud->points[i].x;
             p.y = qd_cloud->points[i].y;
             p.z = qd_cloud->points[i].z;
-            transformFromTo(p,tqw);
+            ::transformFromTo(p,tqw);
             marker.points.push_back(p);
             geometry_msgs::Point q;
-            T searchPoint = qd_cloud->points[i];
+            Point searchPoint = qd_cloud->points[i];
             transformFromTo(searchPoint, tqg);
             int K=1;
             std::vector<int> pointIdxNKNSearch(K);
@@ -101,7 +100,7 @@ void AnalyzePC::visualizeError(){
                 q.y = gt_cloud->points[pointIdxNKNSearch[0]].y;
                 q.z = gt_cloud->points[pointIdxNKNSearch[0]].z;
             }
-            transformFromTo(q,tgw);
+            ::transformFromTo(q,tgw);
             // Not assuming exact correspondence
 #ifdef CORRESPONDENCE_ONLY
             q.x = gt_cloud->points[i].x;
@@ -150,7 +149,7 @@ void AnalyzePC::showKeyPoints(){
     }
     ROS_INFO("Finding the keypoints");
     //
-    pcl::HarrisKeypoint3D<T, pcl::PointXYZI, pcl::PointNormal> hkp;
+    pcl::HarrisKeypoint3D<Point, pcl::PointXYZI, pcl::PointNormal> hkp;
     sensor_msgs::PointCloud2 kp_pc;
     hkp.setRadius(harris_radius);
 
@@ -173,10 +172,10 @@ void AnalyzePC::estimateFPFHFeatures(){
         return;
     }
     ROS_INFO("Estimating FPFH Features");
-    pcl::FPFHEstimation<T, pcl::Normal, pcl::FPFHSignature33> fpfh;
+    pcl::FPFHEstimation<Point, pcl::Normal, pcl::FPFHSignature33> fpfh;
     pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>());
-    pcl::NormalEstimation<pcl::PointXYZI, pcl::Normal> normal_estimation;
-    pcl::search::KdTree<T>::Ptr tree(new pcl::search::KdTree<T>());
+    pcl::NormalEstimation<Point, pcl::Normal> normal_estimation;
+    pcl::search::KdTree<Point>::Ptr tree(new pcl::search::KdTree<Point>());
 
     normal_estimation.setInputCloud(gt_cloud);
     normal_estimation.setSearchMethod(tree);
@@ -242,7 +241,7 @@ void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t){
     //Translation done : Now rotation
 }
 
-void AnalyzePC::transformFromTo(T& p, tf::StampedTransform t){
+void AnalyzePC::transformFromTo(Point& p, tf::StampedTransform t){
     tf::Vector3 origin = t.getOrigin();
     p.x = p.x - origin.x();
     p.y = p.y - origin.y();
