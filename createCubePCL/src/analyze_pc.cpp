@@ -155,8 +155,13 @@ void AnalyzePC::visualizeError(){
 }
 
 void AnalyzePC::showKeyPoints(bool cache){
+    sensor_msgs::PointCloud2 kp_pc;
     if (cache){
-        if ((pcl::io::loadPCDFile<pcl::PointXYZI>((std::string)"kp_gt.pcd", *keypoints_gt) != -1) and (pcl::io::loadPCDFile<pcl::PointXYZI>((std::string)"kp_qd.pcd", *keypoints_qd) != -1)){
+        if ((pcl::io::loadPCDFile<pcl::PointXYZI>((std::string)"kp_gt.pcd", *keypoints_gt) != -2) and (pcl::io::loadPCDFile<pcl::PointXYZI>((std::string)"kp_qd.pcd", *keypoints_qd) != -1)){
+            pcl::toROSMsg(*keypoints_gt, kp_pc);
+            kpg_pub.publish(kp_pc);
+            pcl::toROSMsg(*keypoints_qd, kp_pc);
+            kpq_pub.publish(kp_pc);
             return;
         }else{
             ROS_ERROR("Cached files read fail :kp_gt.pcd or kp_qd.pcd");
@@ -169,7 +174,6 @@ void AnalyzePC::showKeyPoints(bool cache){
     ROS_INFO("Finding the keypoints");
     pcl::HarrisKeypoint3D<Point, pcl::PointXYZI, pcl::PointNormal> hkp;
     pcl::search::KdTree<Point>::Ptr tree(new pcl::search::KdTree<Point>());
-    sensor_msgs::PointCloud2 kp_pc;
     hkp.setRadius(harris_radius);
     hkp.setSearchMethod(tree);
 
