@@ -29,8 +29,8 @@ class AnalyzePC {
     pcl::PointCloud<Point>::Ptr qd_cloud;
     std::vector<float> error_data;
 
-    pcl::PointCloud<pcl::PointXYZI> keypoints_gt;
-    pcl::PointCloud<pcl::PointXYZI> keypoints_qd;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr keypoints_gt;
+    pcl::PointCloud<pcl::PointXYZI>::Ptr keypoints_qd;
     pcl::PointCloud<pcl::FPFHSignature33> fpfhs_gt;
     pcl::PointCloud<pcl::FPFHSignature33> fpfhs_qd;
     pcl::visualization::PCLHistogramVisualizer hist;
