@@ -9,6 +9,7 @@
 #include <pcl/features/fpfh.h>
 #include <pcl/features/fpfh_omp.h>
 #include <pcl/visualization/histogram_visualizer.h>
+#include <pcl/registration/ia_ransac.h>
 #include <pcl/io/pcd_io.h>
 
 typedef pcl::PointXYZ Point;
@@ -22,6 +23,7 @@ class AnalyzePC {
     ros::Publisher vis_pub;
     ros::Publisher kpg_pub;
     ros::Publisher kpq_pub;
+    ros::Publisher ransaced_cloud_pub;
     ros::Subscriber gt_cloud_sub;
     ros::Subscriber qd_cloud_sub;
     ros::ServiceServer set_parameters_server;
@@ -31,9 +33,10 @@ class AnalyzePC {
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr keypoints_gt;
     pcl::PointCloud<pcl::PointXYZI>::Ptr keypoints_qd;
-    pcl::PointCloud<pcl::FPFHSignature33> fpfhs_gt;
-    pcl::PointCloud<pcl::FPFHSignature33> fpfhs_qd;
+    pcl::PointCloud<pcl::FPFHSignature33>::Ptr fpfhs_gt;
+    pcl::PointCloud<pcl::FPFHSignature33>::Ptr fpfhs_qd;
     pcl::visualization::PCLHistogramVisualizer hist;
+    pcl::SampleConsensusInitialAlignment<Point, Point, pcl::FPFHSignature33> sac_ia;
 
     void gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
     void qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
@@ -41,10 +44,14 @@ class AnalyzePC {
     void visualizeError();
     void showKeyPoints();
     void estimateFPFHFeatures();
+    void applySACIA();
 
     double harris_radius;
     double normal_estimation_radius;
     double fpfh_estimation_radius;
+    double min_sample_distance;
+    double max_correspondence_distance;
+    int nr_iterations;
 
     bool feature_added_gt;
     bool feature_added_qd;
