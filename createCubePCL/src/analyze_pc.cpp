@@ -151,24 +151,12 @@ void AnalyzePC::showKeyPoints(){
     sensor_msgs::PointCloud2 kp_pc;
     hkp.setRadius(harris_radius);
     hkp.setSearchMethod(tree);
-    int K=1;
-    std::vector<int> pointIdxNKNSearch(K);
-    std::vector<float> pointNKNSquaredDistance(K);
 
     hkp.setInputCloud(gt_cloud);
     hkp.compute(keypoints_gt);
     keypoints_gt.header.frame_id=gt_cloud->header.frame_id;
     pcl::toROSMsg(keypoints_gt, kp_pc);
     kpg_pub.publish(kp_pc);
-    //finding keypoint indices
-    keypoints_gt_indices.clear();
-    for (size_t i=0; i<keypoints_gt.points.size(); ++i){
-        Point searchPoint;
-        searchPoint.x = keypoints_gt.points[i].x;
-        searchPoint.y = keypoints_gt.points[i].y;
-        searchPoint.z = keypoints_gt.points[i].z;
-        keypoints_gt_indices.push_back(findNearestPointIndices(searchPoint, gt_cloud, 1)[0]);
-    }
     pcl::io::savePCDFileASCII ("kp_gt.pcd", keypoints_gt);
     ROS_INFO("Found GT_CLOUD keypoints :%d", keypoints_gt.points.size());
 
@@ -177,15 +165,6 @@ void AnalyzePC::showKeyPoints(){
     keypoints_qd.header.frame_id=qd_cloud->header.frame_id;
     pcl::toROSMsg(keypoints_qd, kp_pc);
     kpq_pub.publish(kp_pc);
-    //finding keypoint indices
-    keypoints_qd_indices.clear();
-    for (size_t i=0; i<keypoints_qd.points.size(); ++i){
-        Point searchPoint;
-        searchPoint.x = keypoints_gt.points[i].x;
-        searchPoint.y = keypoints_gt.points[i].y;
-        searchPoint.z = keypoints_gt.points[i].z;
-        keypoints_qd_indices.push_back(findNearestPointIndices(searchPoint, qd_cloud, 1)[0]);
-    }
     pcl::io::savePCDFileASCII ("kp_qd.pcd", keypoints_qd);
     ROS_INFO("Found QD_CLOUD keypoints :%d", keypoints_qd.points.size());
 }
@@ -200,21 +179,17 @@ void AnalyzePC::estimateFPFHFeatures(){
     pcl::FPFHEstimationOMP<Point, pcl::Normal, pcl::FPFHSignature33> fpfh;
     pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>());
     pcl::NormalEstimation<Point, pcl::Normal> normal_estimation;
-    pcl::IndicesPtr ind(new std::vector<int>);
 
     normal_estimation.setInputCloud(gt_cloud);
     normal_estimation.setSearchMethod(tree);
     normal_estimation.setRadiusSearch(normal_estimation_radius);
     normal_estimation.compute(*normals);
-    ind->clear();
-    *ind = keypoints_gt_indices;
-    fpfh.setIndices(ind);
-    fpfh.setInputCloud(gt_cloud);
+    fpfh.setSearchSurface(gt_cloud);
     fpfh.setInputNormals(normals);
+    fpfh.setInputCloud(keypoints_gt);
     fpfh.setSearchMethod(tree);
     fpfh.setRadiusSearch(fpfh_estimation_radius);
     fpfh.compute(fpfhs_gt);
-
 
     ROS_INFO("Found GT_CLOUD feature histogram :%d",fpfhs_gt.size());
 #ifdef SAVE_FPFH_HISTOGRAMS
@@ -234,11 +209,9 @@ void AnalyzePC::estimateFPFHFeatures(){
     normal_estimation.setSearchMethod(tree);
     normal_estimation.setRadiusSearch(normal_estimation_radius);
     normal_estimation.compute(*normals);
-    ind->clear();
-    *ind = keypoints_qd_indices;
-    fpfh.setIndices(ind);
-    fpfh.setInputCloud(qd_cloud);
+    fpfh.setSearchSurface(qd_cloud);
     fpfh.setInputNormals(normals);
+    fpfh.setInputCloud(keypoints_qd);
     fpfh.setSearchMethod(tree);
     fpfh.setRadiusSearch(fpfh_estimation_radius);
     fpfh.compute(fpfhs_qd);
