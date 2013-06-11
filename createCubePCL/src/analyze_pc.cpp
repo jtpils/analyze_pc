@@ -19,6 +19,7 @@ std::string qd_name;
 AnalyzePC::AnalyzePC():
 gt_cloud(new pcl::PointCloud<Point>),
 qd_cloud(new pcl::PointCloud<Point>),
+transformed_qd_cloud(new pcl::PointCloud<Point>),
 keypoints_gt(new pcl::PointCloud<pcl::PointXYZI>),
 keypoints_qd(new pcl::PointCloud<pcl::PointXYZI>),
 fpfhs_gt(new pcl::PointCloud<pcl::FPFHSignature33>),
@@ -31,7 +32,9 @@ fpfhs_qd(new pcl::PointCloud<pcl::FPFHSignature33>)
     vis_pub = nh.advertise<visualization_msgs::Marker>("/cloud_vis_marker",1, this);
     kpg_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+gt_name+"/kp_cloud",1);
     kpq_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+qd_name+"/kp_cloud",1);
-    ransaced_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>
+    registered_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>
+        ("/"+qd_name+"/registered_cloud", 1);
+    registered_kp_pub = nh.advertise<sensor_msgs::PointCloud2>
         ("/"+qd_name+"/registered_kp_cloud", 1);
     set_parameters_server = nh.advertiseService("/analyze_pc/set_parameters",
             &AnalyzePC::setParamCb, this);
@@ -72,7 +75,6 @@ void AnalyzePC::visualizeError(){
     visualization_msgs::Marker marker;
     marker.header.frame_id = WORLD_FRAME;
     marker.header.stamp = ros::Time();
-    marker.ns = "cube_error";
     marker.id = 0;
     marker.type = visualization_msgs::Marker::POINTS;
 #ifdef ERROR_LINES_DISPLAY
@@ -98,44 +100,43 @@ void AnalyzePC::visualizeError(){
     tf::StampedTransform tqg = getTransform(qd_cloud->header.frame_id, gt_cloud->header.frame_id);
     std_msgs::ColorRGBA c;
 
-    if (gt_cloud->width == qd_cloud->width && gt_cloud->height == qd_cloud->height){
-        for (size_t i=0; i<qd_cloud->width; ++i){
-            geometry_msgs::Point p;
-            p.x = qd_cloud->points[i].x;
-            p.y = qd_cloud->points[i].y;
-            p.z = qd_cloud->points[i].z;
-            transformFromTo(p,tqw);
-            marker.points.push_back(p);
-            geometry_msgs::Point q;
-            Point searchPoint = qd_cloud->points[i];
-            transformFromTo(searchPoint, tqg);
-            // Not assuming exact correspondence
-            int point_index = findNearestPointIndices(searchPoint, qd_cloud, 1)[0];
-            q.x = gt_cloud->points[point_index].x;
-            q.y = gt_cloud->points[point_index].y;
-            q.z = gt_cloud->points[point_index].z;
-            transformFromTo(q,tgw);
+    pcl::transformPointCloud(*qd_cloud, *transformed_qd_cloud, transformation_q_g);
+
+    for (size_t i=0; i<transformed_qd_cloud->width; ++i){
+        geometry_msgs::Point p;
+        geometry_msgs::Point q;
+        Point searchPoint = transformed_qd_cloud->points[i];
+        p.x = searchPoint.x;
+        p.y = searchPoint.y;
+        p.z = searchPoint.z;
+        marker.points.push_back(p);
+        // Not assuming exact correspondence
+        int point_index = findNearestPointIndices(searchPoint, gt_cloud, 1)[0];
+        q.x = gt_cloud->points[point_index].x;
+        q.y = gt_cloud->points[point_index].y;
+        q.z = gt_cloud->points[point_index].z;
 #ifdef CORRESPONDENCE_ONLY
-            q.x = gt_cloud->points[i].x;
-            q.y = gt_cloud->points[i].y;
-            q.z = gt_cloud->points[i].z;
-            transformFromTo(q,tgw);
+        q.x = gt_cloud->points[i].x;
+        q.y = gt_cloud->points[i].y;
+        q.z = gt_cloud->points[i].z;
+        transformFromTo(q,tgw);
 #endif
 #ifdef ERROR_LINES_DISPLAY
-            marker.points.push_back(q);
+        marker.points.push_back(q);
 #endif
-            float error = (p.x-q.x)*(p.x-q.x)+(p.y-q.y)*(p.y-q.y)+(p.z-q.z)*(p.z-q.z);
-            if (error > max_error){
-                max_error = error;
-            }
-            if (error < min_error){
-                min_error = error;
-            }
-            error_data.push_back(error);
+        float error = (p.x-q.x)*(p.x-q.x)+(p.y-q.y)*(p.y-q.y)+(p.z-q.z)*(p.z-q.z);
+        if (sqrt(error) < max_correspondence_distance){
+            error = error/2;
+        }else{
+            error = max_correspondence_distance*(sqrt(error)-max_correspondence_distance/2);
         }
-    }
-    else{
-        ROS_ERROR("PointClouds are not registered");
+        if (error > max_error){
+            max_error = error;
+        }
+        if (error < min_error){
+            min_error = error;
+        }
+        error_data.push_back(error);
     }
     float avg_error = 0.0;
     for (size_t i=0; i<error_data.size(); ++i){
@@ -151,8 +152,15 @@ void AnalyzePC::visualizeError(){
 #endif
         avg_error = (avg_error*i + error_data[i])/(i+1);
     }
-    ROS_INFO("Average error is %f",avg_error);
+    ROS_INFO("Average error (huber fitness score) is %f",avg_error);
     vis_pub.publish(marker);
+    if (avg_error < min_fitness_score){
+        sensor_msgs::PointCloud2 pc;
+        pcl::toROSMsg(*transformed_qd_cloud, pc);
+        pc.header.frame_id = gt_cloud->header.frame_id;
+        registered_cloud_pub.publish(pc);
+        min_fitness_score = avg_error;
+    }
 }
 
 void AnalyzePC::showKeyPoints(bool cache){
@@ -290,17 +298,14 @@ void AnalyzePC::applySACIA(){
     fitness_score = sac_ia.getFitnessScore(max_correspondence_distance);
     ROS_INFO("Pointclouds aligned, fitness score is :%f", fitness_score);
 
-    if (fitness_score < min_fitness_score){
-        transformation_q_g = sac_ia.getFinalTransformation();
-        ransaced_source.width = ransaced_source.size();
-        ransaced_source.height = 1;
-        pcl::io::savePCDFileASCII("registered_qd_cloud.pcd", ransaced_source);
-        sensor_msgs::PointCloud2 pc;
-        pcl::toROSMsg(ransaced_source, pc);
-        pc.header.frame_id = qd_cloud->header.frame_id;
-        ransaced_cloud_pub.publish(pc);
-        min_fitness_score = fitness_score;
-    }
+    transformation_q_g = sac_ia.getFinalTransformation();
+    ransaced_source.width = ransaced_source.size();
+    ransaced_source.height = 1;
+    pcl::io::savePCDFileASCII("registered_qd_cloud.pcd", ransaced_source);
+    sensor_msgs::PointCloud2 pc;
+    pcl::toROSMsg(ransaced_source, pc);
+    pc.header.frame_id = qd_cloud->header.frame_id;
+    registered_kp_pub.publish(pc);
 }
 
 bool AnalyzePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
