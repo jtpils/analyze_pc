@@ -250,6 +250,10 @@ void AnalyzePC::estimateFPFHFeatures(){
 }
 
 void AnalyzePC::applySACIA(){
+    if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
+        ROS_ERROR("Not yet received point clouds");
+        return;
+    }
     ROS_INFO("Applying SAC-IA algorithm on the harris keypoint clouds using fpfh features");
     pcl::PointCloud<Point> ransaced_source;
     Eigen::Matrix4f transformation;
