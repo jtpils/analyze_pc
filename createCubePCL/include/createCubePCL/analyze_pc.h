@@ -28,7 +28,6 @@ class AnalyzePC {
     pcl::PointCloud<Point>::Ptr qd_cloud;
     std::vector<float> error_data;
 
-    pcl::KdTreeFLANN<Point> kdtree;
     pcl::PointCloud<pcl::PointXYZI> keypoints_gt;
     pcl::PointCloud<pcl::PointXYZI> keypoints_qd;
     std::vector<int> keypoints_gt_indices;

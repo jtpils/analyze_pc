@@ -9,13 +9,14 @@
 
 void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t);
 tf::StampedTransform getTransform(std::string from_frame, std::string to_frame);
+std::vector<int> findNearestPointIndices(Point searchPoint, pcl::PointCloud<Point>::Ptr cloud, int K=1);
 
 std::string gt_name;
 std::string qd_name;
 
 AnalyzePC::AnalyzePC():
 gt_cloud(new pcl::PointCloud<Point>),
-qd_cloud(new pcl::PointCloud<Point>),
+qd_cloud(new pcl::PointCloud<Point>)
 {
     std::string gt_cloud_topic_name = "/"+gt_name+"/cloud";
     std::string qd_cloud_topic_name = "/"+qd_name+"/cloud";
@@ -52,7 +53,6 @@ void AnalyzePC::visualizeError(){
         return;
     }
     ROS_INFO("Visualizing the error");
-    kdtree.setInputCloud(gt_cloud);
     visualization_msgs::Marker marker;
     marker.header.frame_id = WORLD_FRAME;
     marker.header.stamp = ros::Time();
@@ -93,14 +93,6 @@ void AnalyzePC::visualizeError(){
             geometry_msgs::Point q;
             Point searchPoint = qd_cloud->points[i];
             transformFromTo(searchPoint, tqg);
-            int K=1;
-            std::vector<int> pointIdxNKNSearch(K);
-            std::vector<float> pointNKNSquaredDistance(K);
-            if ( kdtree.nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
-                q.x = gt_cloud->points[pointIdxNKNSearch[0]].x;
-                q.y = gt_cloud->points[pointIdxNKNSearch[0]].y;
-                q.z = gt_cloud->points[pointIdxNKNSearch[0]].z;
-            }
             ::transformFromTo(q,tgw);
             // Not assuming exact correspondence
 #ifdef CORRESPONDENCE_ONLY
@@ -164,13 +156,17 @@ void AnalyzePC::showKeyPoints(){
     pcl::toROSMsg(keypoints_gt, kp_pc);
     kpg_pub.publish(kp_pc);
     //finding keypoint indices
+    /*
     for (size_t i=0; i<keypoints_gt.points.size(); ++i){
-        Point searchPoint = keypoints_gt.points[i];
+        Point searchPoint;
+        searchPoint.x = keypoints_gt.points[i].x;
+        searchPoint.y = keypoints_gt.points[i].y;
+        searchPoint.z = keypoints_gt.points[i].z;
         if ( kdtree.nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
             keypoints_gt_indices.push_back(pointIdxNKNSearch[0]);
         }
     }
-
+    */
     pcl::io::savePCDFileASCII ("kp_gt.pcd", keypoints_gt);
     ROS_INFO("Found GT_CLOUD keypoints :%d", keypoints_gt.points.size());
 
@@ -180,12 +176,14 @@ void AnalyzePC::showKeyPoints(){
     pcl::toROSMsg(keypoints_qd, kp_pc);
     kpq_pub.publish(kp_pc);
     //finding keypoint indices
+    /*
     for (size_t i=0; i<keypoints_qd.points.size(); ++i){
         Point searchPoint = keypoints_qd.points[i];
         if ( kdtree.nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
             keypoints_gt_indices.push_back(pointIdxNKNSearch[0]);
         }
     }
+    */
     pcl::io::savePCDFileASCII ("kp_qd.pcd", keypoints_qd);
     ROS_INFO("Found QD_CLOUD keypoints :%d", keypoints_qd.points.size());
 }
@@ -196,6 +194,7 @@ void AnalyzePC::estimateFPFHFeatures(){
         return;
     }
     ROS_INFO("Estimating FPFH Features");
+    pcl::search::KdTree<Point>::Ptr tree(new pcl::search::KdTree<Point>());
     pcl::FPFHEstimation<Point, pcl::Normal, pcl::FPFHSignature33> fpfh;
     pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>());
     pcl::NormalEstimation<Point, pcl::Normal> normal_estimation;
@@ -206,7 +205,7 @@ void AnalyzePC::estimateFPFHFeatures(){
     normal_estimation.setRadiusSearch(normal_estimation_radius);
     normal_estimation.compute(*normals);
     ind->clear();
-    ind = *keypoints_gt_indices;
+    *ind = keypoints_gt_indices;
     fpfh.setIndices(ind);
     fpfh.setInputCloud(gt_cloud);
     fpfh.setInputNormals(normals);
@@ -234,7 +233,7 @@ void AnalyzePC::estimateFPFHFeatures(){
     normal_estimation.setRadiusSearch(normal_estimation_radius);
     normal_estimation.compute(*normals);
     ind->clear();
-    ind = *keypoints_qd_indices;
+    *ind = keypoints_qd_indices;
     fpfh.setIndices(ind);
     fpfh.setInputCloud(qd_cloud);
     fpfh.setInputNormals(normals);
@@ -289,6 +288,19 @@ void AnalyzePC::transformFromTo(Point& p, tf::StampedTransform t){
     p.x = p.x - origin.x();
     p.y = p.y - origin.y();
     p.z = p.z - origin.z();
+}
+
+std::vector<int> findNearestPointIndices(Point searchPoint, pcl::PointCloud<Point>::Ptr cloud,
+        int K){
+    pcl::KdTreeFLANN<Point> kdtree;
+    kdtree.setInputCloud(cloud);
+    std::vector<int> pointIdxNKNSearch(K);
+    std::vector<float> pointNKNSquaredDistance(K);
+    if ( kdtree.nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
+        return pointIdxNKNSearch;
+    }
+    pointIdxNKNSearch.clear();
+    return pointIdxNKNSearch;
 }
 
 void AnalyzePC::spin(){
