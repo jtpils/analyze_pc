@@ -38,7 +38,7 @@ class AnalyzePC {
     pcl::visualization::PCLHistogramVisualizer hist;
     pcl::SampleConsensusInitialAlignment<Point, Point, pcl::FPFHSignature33> sac_ia;
     Eigen::Matrix4f transformation_q_g;
-    float fitness_score;
+    float min_fitness_score;
 
     void gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
     void qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);

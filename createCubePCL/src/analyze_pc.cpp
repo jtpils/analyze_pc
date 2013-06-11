@@ -32,7 +32,7 @@ fpfhs_qd(new pcl::PointCloud<pcl::FPFHSignature33>)
     kpg_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+gt_name+"/kp_cloud",1);
     kpq_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+qd_name+"/kp_cloud",1);
     ransaced_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>
-        ("/"+qd_name+"/registered_cloud", 1);
+        ("/"+qd_name+"/registered_kp_cloud", 1);
     set_parameters_server = nh.advertiseService("/analyze_pc/set_parameters",
             &AnalyzePC::setParamCb, this);
 
@@ -52,6 +52,7 @@ fpfhs_qd(new pcl::PointCloud<pcl::FPFHSignature33>)
 
     feature_added_gt = false;
     feature_added_qd = false;
+    min_fitness_score = FLT_MAX;
 }
 
 void AnalyzePC::gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
@@ -159,8 +160,10 @@ void AnalyzePC::showKeyPoints(bool cache){
     if (cache){
         if ((pcl::io::loadPCDFile<pcl::PointXYZI>((std::string)"kp_gt.pcd", *keypoints_gt) != -2) and (pcl::io::loadPCDFile<pcl::PointXYZI>((std::string)"kp_qd.pcd", *keypoints_qd) != -1)){
             pcl::toROSMsg(*keypoints_gt, kp_pc);
+            kp_pc.header.frame_id=gt_cloud->header.frame_id;
             kpg_pub.publish(kp_pc);
             pcl::toROSMsg(*keypoints_qd, kp_pc);
+            kp_pc.header.frame_id=qd_cloud->header.frame_id;
             kpq_pub.publish(kp_pc);
             return;
         }else{
@@ -274,6 +277,7 @@ void AnalyzePC::applySACIA(){
     }
     ROS_INFO("Applying SAC-IA algorithm on the harris keypoint clouds using fpfh features");
     pcl::PointCloud<Point> ransaced_source;
+    float fitness_score;
     sac_ia.setMinSampleDistance(min_sample_distance);
     sac_ia.setMaxCorrespondenceDistance(max_correspondence_distance);
     sac_ia.setMaximumIterations(nr_iterations);
@@ -283,17 +287,20 @@ void AnalyzePC::applySACIA(){
     sac_ia.setInputTarget(toPointXYZ(keypoints_gt));
     sac_ia.setTargetFeatures(fpfhs_gt);
     sac_ia.align(ransaced_source);
-    transformation_q_g = sac_ia.getFinalTransformation();
     fitness_score = sac_ia.getFitnessScore(max_correspondence_distance);
     ROS_INFO("Pointclouds aligned, fitness score is :%f", fitness_score);
 
-    ransaced_source.width = ransaced_source.size();
-    ransaced_source.height = 1;
-    pcl::io::savePCDFileASCII("registered_qd_cloud.pcd", ransaced_source);
-    sensor_msgs::PointCloud2 pc;
-    pcl::toROSMsg(ransaced_source, pc);
-    pc.header.frame_id = qd_cloud->header.frame_id;
-    ransaced_cloud_pub.publish(pc);
+    if (fitness_score < min_fitness_score){
+        transformation_q_g = sac_ia.getFinalTransformation();
+        ransaced_source.width = ransaced_source.size();
+        ransaced_source.height = 1;
+        pcl::io::savePCDFileASCII("registered_qd_cloud.pcd", ransaced_source);
+        sensor_msgs::PointCloud2 pc;
+        pcl::toROSMsg(ransaced_source, pc);
+        pc.header.frame_id = qd_cloud->header.frame_id;
+        ransaced_cloud_pub.publish(pc);
+        min_fitness_score = fitness_score;
+    }
 }
 
 bool AnalyzePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
