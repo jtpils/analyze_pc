@@ -161,6 +161,7 @@ void AnalyzePC::showKeyPoints(){
     pcl::toROSMsg(keypoints_gt, kp_pc);
     kpg_pub.publish(kp_pc);
     //finding keypoint indices
+    keypoints_gt_indices.clear();
     for (size_t i=0; i<keypoints_gt.points.size(); ++i){
         Point searchPoint;
         searchPoint.x = keypoints_gt.points[i].x;
@@ -177,6 +178,7 @@ void AnalyzePC::showKeyPoints(){
     pcl::toROSMsg(keypoints_qd, kp_pc);
     kpq_pub.publish(kp_pc);
     //finding keypoint indices
+    keypoints_qd_indices.clear();
     for (size_t i=0; i<keypoints_qd.points.size(); ++i){
         Point searchPoint;
         searchPoint.x = keypoints_gt.points[i].x;
