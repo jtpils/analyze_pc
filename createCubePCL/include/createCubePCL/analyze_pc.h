@@ -7,6 +7,7 @@
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/keypoints/harris_keypoint3D.h>
 #include <pcl/features/fpfh.h>
+#include <pcl/features/fpfh_omp.h>
 #include <pcl/visualization/histogram_visualizer.h>
 #include <pcl/io/pcd_io.h>
 
