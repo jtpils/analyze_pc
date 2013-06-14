@@ -16,6 +16,8 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr toPointXYZ(pcl::PointCloud<pcl::PointXYZI>::
 
 std::string gt_name;
 std::string qd_name;
+bool found_kp;
+bool found_fh;
 
 AnalyzePC::AnalyzePC():
 gt_cloud(new pcl::PointCloud<Point>),
@@ -42,9 +44,9 @@ fpfhs_qd(new pcl::PointCloud<pcl::FPFHSignature33>)
 
     harris_radius = 0.01;
     nh.setParam("/analyze_pc/harris_radius", harris_radius);
-    normal_estimation_radius = 0.01;
+    normal_estimation_radius = 0.02;
     nh.setParam("/analyze_pc/normal_estimation_radius", normal_estimation_radius);
-    fpfh_estimation_radius = 0.03;
+    fpfh_estimation_radius = 0.04;
     nh.setParam("/analyze_pc/fpfh_estimation_radius", fpfh_estimation_radius);
     min_sample_distance = 0.05;
     nh.setParam("/analyze_pc/sacia/min_sample_distance", min_sample_distance);
@@ -107,6 +109,7 @@ void AnalyzePC::showKeyPoints(bool cache){
     kpq_pub.publish(kp_pc);
     pcl::io::savePCDFileASCII ("kp_qd.pcd", *keypoints_qd);
     ROS_INFO("Found QD_CLOUD keypoints :%d", keypoints_qd->points.size());
+    found_kp = true;
 }
 
 void AnalyzePC::estimateFPFHFeatures(bool cache){
@@ -180,6 +183,7 @@ void AnalyzePC::estimateFPFHFeatures(bool cache){
         hist.updateFeatureHistogram (*fpfhs_qd, 33 , "fpfh_dist_qd");
     }
 #endif
+    found_fh = true;
 }
 
 void AnalyzePC::applySACIA(){
@@ -427,12 +431,12 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr toPointXYZ(pcl::PointCloud<pcl::PointXYZI>::
 
 void AnalyzePC::spin(){
     ros::Rate loop_rate(10);
+    found_kp = false;
+    found_fh = false;
     while(ros::ok()){
         ros::spinOnce();
-        showKeyPoints();
-        estimateFPFHFeatures();
-        //showKeyPoints(true); //Using cached pointclouds
-        //estimateFPFHFeatures(true);
+        showKeyPoints(found_kp);
+        estimateFPFHFeatures(found_fh);
         applySACIA();
         //visualizeError();
 #ifdef VIEW_FPFH_HISTOGRAMS
