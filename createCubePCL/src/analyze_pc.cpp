@@ -429,10 +429,10 @@ void AnalyzePC::spin(){
     ros::Rate loop_rate(10);
     while(ros::ok()){
         ros::spinOnce();
-        //showKeyPoints();
-        //estimateFPFHFeatures();
-        showKeyPoints(true); //Using cached pointclouds
-        estimateFPFHFeatures(true);
+        showKeyPoints();
+        estimateFPFHFeatures();
+        //showKeyPoints(true); //Using cached pointclouds
+        //estimateFPFHFeatures(true);
         applySACIA();
         //visualizeError();
 #ifdef VIEW_FPFH_HISTOGRAMS
