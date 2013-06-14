@@ -18,6 +18,8 @@ std::string gt_name;
 std::string qd_name;
 bool found_kp;
 bool found_fh;
+static std::string names[10]={"bun000", "bun045", "bun090", "bun180", "bun270", "bun315", "chin", "ear_back", "top2", "top3"};
+int pair_number;
 
 AnalyzePC::AnalyzePC():
 gt_cloud(new pcl::PointCloud<Point>),
@@ -72,13 +74,14 @@ void AnalyzePC::qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
 void AnalyzePC::showKeyPoints(bool cache){
     sensor_msgs::PointCloud2 kp_pc;
     if (cache){
-        if ((pcl::io::loadPCDFile<pcl::PointXYZI>((std::string)"kp_gt.pcd", *keypoints_gt) != -2) and (pcl::io::loadPCDFile<pcl::PointXYZI>((std::string)"kp_qd.pcd", *keypoints_qd) != -1)){
+        if ((pcl::io::loadPCDFile<pcl::PointXYZI>("kp_"+gt_name+".pcd", *keypoints_gt) != -1) and (pcl::io::loadPCDFile<pcl::PointXYZI>("kp_"+qd_name+".pcd", *keypoints_qd) != -1)){
             pcl::toROSMsg(*keypoints_gt, kp_pc);
             kp_pc.header.frame_id=gt_cloud->header.frame_id;
             kpg_pub.publish(kp_pc);
             pcl::toROSMsg(*keypoints_qd, kp_pc);
             kp_pc.header.frame_id=qd_cloud->header.frame_id;
             kpq_pub.publish(kp_pc);
+            found_kp = true;
             return;
         }else{
             ROS_ERROR("Cached files read fail :kp_gt.pcd or kp_qd.pcd");
@@ -101,8 +104,8 @@ void AnalyzePC::showKeyPoints(bool cache){
     keypoints_gt->header.frame_id=gt_cloud->header.frame_id;
     pcl::toROSMsg(*keypoints_gt, kp_pc);
     kpg_pub.publish(kp_pc);
-    pcl::io::savePCDFileASCII ("kp_gt.pcd", *keypoints_gt);
-    ROS_INFO("Found GT_CLOUD keypoints :%d", keypoints_gt->points.size());
+    pcl::io::savePCDFileASCII ("kp_"+gt_name+".pcd", *keypoints_gt);
+    ROS_INFO("Found GT_CLOUD (%s) keypoints :%d", gt_name.c_str(), keypoints_gt->points.size());
 
     hkp_qd.setRadius(harris_radius);
     hkp_qd.setSearchMethod(tree_qd);
@@ -111,14 +114,15 @@ void AnalyzePC::showKeyPoints(bool cache){
     keypoints_qd->header.frame_id=qd_cloud->header.frame_id;
     pcl::toROSMsg(*keypoints_qd, kp_pc);
     kpq_pub.publish(kp_pc);
-    pcl::io::savePCDFileASCII ("kp_qd.pcd", *keypoints_qd);
-    ROS_INFO("Found QD_CLOUD keypoints :%d", keypoints_qd->points.size());
+    pcl::io::savePCDFileASCII ("kp_"+qd_name+".pcd", *keypoints_qd);
+    ROS_INFO("Found QD_CLOUD (%s) keypoints :%d", qd_name.c_str(), keypoints_qd->points.size());
     found_kp = true;
 }
 
 void AnalyzePC::estimateFPFHFeatures(bool cache){
     if (cache){
-        if (pcl::io::loadPCDFile<pcl::FPFHSignature33>((std::string)"fpfhs_gt.pcd", *fpfhs_gt) != -1 and pcl::io::loadPCDFile<pcl::FPFHSignature33>((std::string)"fpfhs_qd.pcd", *fpfhs_qd) != -1){
+        if (pcl::io::loadPCDFile<pcl::FPFHSignature33>((std::string)"fpfhs_"+gt_name+".pcd", *fpfhs_gt) != -1 and pcl::io::loadPCDFile<pcl::FPFHSignature33>((std::string)"fpfhs_"+qd_name+".pcd", *fpfhs_qd) != -1){
+            found_fh = true;
             return;
         }else{
             ROS_ERROR("Cached files read fail :fpfhs_gt.pcd or fpfhs_qd.pcd");
@@ -147,9 +151,9 @@ void AnalyzePC::estimateFPFHFeatures(bool cache){
     fpfhs_gt->width = fpfhs_gt->size();
     fpfhs_gt->height = 1;
 
-    ROS_INFO("Found GT_CLOUD feature histogram :%d",fpfhs_gt->size());
+    ROS_INFO("Found GT_CLOUD (%s) feature histogram :%d", gt_name.c_str(), fpfhs_gt->size());
 #ifdef SAVE_FPFH_HISTOGRAMS
-    pcl::io::savePCDFileASCII ("fpfhs_gt.pcd", *fpfhs_gt);
+    pcl::io::savePCDFileASCII ("fpfhs_"+gt_name+".pcd", *fpfhs_gt);
 #endif
 
 #ifdef VIEW_FPFH_HISTOGRAMS
@@ -174,9 +178,9 @@ void AnalyzePC::estimateFPFHFeatures(bool cache){
     fpfhs_qd->width = fpfhs_qd->size();
     fpfhs_qd->height = 1;
 
-    ROS_INFO("Found QD_CLOUD feature histogram :%d", fpfhs_qd->size());
+    ROS_INFO("Found QD_CLOUD (%s) feature histogram :%d", qd_name.c_str(), fpfhs_qd->size());
 #ifdef SAVE_FPFH_HISTOGRAMS
-    pcl::io::savePCDFileASCII ("fpfhs_qd.pcd", *fpfhs_qd);
+    pcl::io::savePCDFileASCII ("fpfhs_"+qd_name+".pcd", *fpfhs_qd);
 #endif
 
 #ifdef VIEW_FPFH_HISTOGRAMS
@@ -203,6 +207,7 @@ void AnalyzePC::applySACIA(){
     float min_error = FLT_MAX;
     float max_error = 0.0;
     float error = 0.0;
+    char x='y';
     sac_ia.setMinSampleDistance(min_sample_distance);
     //sac_ia.setMaxCorrespondenceDistance(max_correspondence_distance);
     sac_ia.setMaximumIterations(nr_iterations);
@@ -211,65 +216,68 @@ void AnalyzePC::applySACIA(){
     sac_ia.setSourceFeatures(fpfhs_qd);
     sac_ia.setInputTarget(toPointXYZ(keypoints_gt));
     sac_ia.setTargetFeatures(fpfhs_gt);
-    sac_ia.align(ransaced_source);
-    fitness_score = sac_ia.getFitnessScore(max_correspondence_distance);
-    transformation_q_g = sac_ia.getFinalTransformation();
-    ROS_INFO("Pointclouds aligned, fitness score (with keypoints only) is :%f", fitness_score);
-    ransaced_source.width = ransaced_source.size();
-    ransaced_source.height = 1;
+    while (x!='n'){
+        sac_ia.align(ransaced_source);
+        fitness_score = sac_ia.getFitnessScore(max_correspondence_distance);
+        transformation_q_g = sac_ia.getFinalTransformation();
+        ROS_INFO("Pointclouds aligned, fitness score (with keypoints only) is :%f", fitness_score);
+        ransaced_source.width = ransaced_source.size();
+        ransaced_source.height = 1;
 
-    pcl::PointCloud<Point>::Ptr kp_gt_cl = toPointXYZ(keypoints_gt);
-    kdtree.setInputCloud(kp_gt_cl);
-    error = 0.0;
-    for (size_t i=0; i < ransaced_source.width; ++i){
-        Point searchPoint = ransaced_source.points[i];
-        int point_index = findNearestPointIndices(searchPoint, kp_gt_cl, kdtree, 1)[0];
-        for (int j=0; j<33; ++j){
-            float diff = fpfhs_gt->points[point_index].histogram[j]-fpfhs_qd->points[i].histogram[j];
-            error += diff*diff;
+        pcl::PointCloud<Point>::Ptr kp_gt_cl = toPointXYZ(keypoints_gt);
+        kdtree.setInputCloud(kp_gt_cl);
+        error = 0.0;
+        for (size_t i=0; i < ransaced_source.width; ++i){
+            Point searchPoint = ransaced_source.points[i];
+            int point_index = findNearestPointIndices(searchPoint, kp_gt_cl, kdtree, 1)[0];
+            for (int j=0; j<33; ++j){
+                float diff = fpfhs_gt->points[point_index].histogram[j]-fpfhs_qd->points[i].histogram[j];
+                error += diff*diff;
+            }
         }
-    }
-    ROS_INFO("Keypoint Fitness Match (Euclidean) is %f",error/ransaced_source.size());
+        ROS_INFO("Keypoint Fitness Match (Euclidean) is %f",error/ransaced_source.size());
 
-    pcl::transformPointCloud(*qd_cloud, *transformed_qd_cloud, transformation_q_g);
-    kdtree.setInputCloud(gt_cloud);
-    fitness_score = 0.0;
-    for (size_t i=0; i<transformed_qd_cloud->width; ++i){
-        Point searchPoint = transformed_qd_cloud->points[i];
-        int point_index = findNearestPointIndices(searchPoint, gt_cloud, kdtree, 1)[0];
-        Point resultPoint = gt_cloud->points[point_index];
-        Eigen::Vector4f p1 = Eigen::Vector4f (searchPoint.x, searchPoint.y, searchPoint.z, 0);
-        Eigen::Vector4f p2 = Eigen::Vector4f (resultPoint.x, resultPoint.y, resultPoint.z, 0);
-        error = (p1-p2).squaredNorm();
-        if (sqrt(error) < max_correspondence_distance){
-            error = error/2.0;
+        pcl::transformPointCloud(*qd_cloud, *transformed_qd_cloud, transformation_q_g);
+        kdtree.setInputCloud(gt_cloud);
+        fitness_score = 0.0;
+        for (size_t i=0; i<transformed_qd_cloud->width; ++i){
+            Point searchPoint = transformed_qd_cloud->points[i];
+            int point_index = findNearestPointIndices(searchPoint, gt_cloud, kdtree, 1)[0];
+            Point resultPoint = gt_cloud->points[point_index];
+            Eigen::Vector4f p1 = Eigen::Vector4f (searchPoint.x, searchPoint.y, searchPoint.z, 0);
+            Eigen::Vector4f p2 = Eigen::Vector4f (resultPoint.x, resultPoint.y, resultPoint.z, 0);
+            error = (p1-p2).squaredNorm();
+            if (sqrt(error) < max_correspondence_distance){
+                error = error/2.0;
+            }else{
+                error = max_correspondence_distance*(sqrt(error)-max_correspondence_distance/2.0);
+            }
+            if (error > max_error){
+                max_error = error;
+            }
+            if (error < min_error){
+                min_error = error;
+            }
+            fitness_score += fabs(error);
+        }
+        float avg_error = fitness_score/transformed_qd_cloud->width;
+        ROS_INFO("Average error (huber fitness score) is %f",avg_error);
+        if (avg_error < min_fitness_score){
+            pcl::io::savePCDFileASCII("registered_kp_cloud.pcd", ransaced_source);
+            pcl::toROSMsg(ransaced_source, pc);
+            pc.header.frame_id = qd_cloud->header.frame_id;
+            registered_kp_pub.publish(pc);
+
+            pcl::io::savePCDFileASCII("registered_qd_cloud.pcd", *transformed_qd_cloud);
+            pcl::toROSMsg(*transformed_qd_cloud, pc);
+            pc.header.frame_id = gt_cloud->header.frame_id;
+            registered_cloud_pub.publish(pc);
+            min_fitness_score = avg_error;
+            std::cout << "Continue? :";
+            std::cin >> x;
         }else{
-            error = max_correspondence_distance*(sqrt(error)-max_correspondence_distance/2.0);
+            x='y';
         }
-        if (error > max_error){
-            max_error = error;
-        }
-        if (error < min_error){
-            min_error = error;
-        }
-        fitness_score += fabs(error);
-    }
-    float avg_error = fitness_score/transformed_qd_cloud->width;
-    ROS_INFO("Average error (huber fitness score) is %f",avg_error);
-    if (avg_error < min_fitness_score){
-        pcl::io::savePCDFileASCII("registered_kp_cloud.pcd", ransaced_source);
-        pcl::toROSMsg(ransaced_source, pc);
-        pc.header.frame_id = qd_cloud->header.frame_id;
-        registered_kp_pub.publish(pc);
-
-        pcl::io::savePCDFileASCII("registered_qd_cloud.pcd", *transformed_qd_cloud);
-        pcl::toROSMsg(*transformed_qd_cloud, pc);
-        pc.header.frame_id = gt_cloud->header.frame_id;
-        registered_cloud_pub.publish(pc);
-        min_fitness_score = avg_error;
-        char x;
-        std::cout << "Continue?\n";
-        std::cin >> x;
     }
 }
 
@@ -439,9 +447,25 @@ void AnalyzePC::spin(){
     found_fh = false;
     while(ros::ok()){
         ros::spinOnce();
-        showKeyPoints(found_kp);
-        estimateFPFHFeatures(found_fh);
-        applySACIA();
+        //showKeyPoints(found_kp);
+        //estimateFPFHFeatures(found_fh);
+        showKeyPoints(true);
+        estimateFPFHFeatures(true);
+        if (found_kp and found_fh and pair_number+3<10){
+            pair_number+=2;
+            gt_name = names[pair_number];
+            qd_name = names[(pair_number+1)];
+            ROS_INFO("Next Pair :%s , %s", gt_name.c_str(), qd_name.c_str());
+            std::string gt_cloud_topic_name = "/"+gt_name+"/cloud";
+            std::string qd_cloud_topic_name = "/"+qd_name+"/cloud";
+            gt_cloud_sub.shutdown();
+            qd_cloud_sub.shutdown();
+            gt_cloud_sub = nh.subscribe(gt_cloud_topic_name, 1, &AnalyzePC::gtCloudCb, this);
+            qd_cloud_sub = nh.subscribe(qd_cloud_topic_name, 1, &AnalyzePC::qdCloudCb, this);
+            found_kp = false;
+            found_fh = false;
+        }
+        //applySACIA();
         //visualizeError();
 #ifdef VIEW_FPFH_HISTOGRAMS
         hist.spinOnce(10);
@@ -453,8 +477,9 @@ void AnalyzePC::spin(){
 
 int main (int argc, char ** argv){
     ros::init (argc, argv, "analyze_pc");
-    gt_name = "cube2";
-    qd_name = "cube1";
+    pair_number = 0;
+    gt_name = names[pair_number];
+    qd_name = names[pair_number+1];
     if (argc == 3){
         gt_name = argv[1];
         qd_name = argv[2];
