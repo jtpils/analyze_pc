@@ -1,4 +1,5 @@
 #include <ros/ros.h>
+#include <ros/package.h>
 #include <std_srvs/Empty.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <tf/transform_listener.h>
@@ -48,6 +49,7 @@ class AnalyzePC {
     void visualizeError();
     void showKeyPoints(bool cache=false);
     void estimateFPFHFeatures(bool cache=false);
+    pcl::PointCloud<Point>::Ptr getCloud(std::string);
     void applySACIA();
 
     double harris_radius;

@@ -216,7 +216,9 @@ void AnalyzePC::applySACIA(){
     sac_ia.setSourceFeatures(fpfhs_qd);
     sac_ia.setInputTarget(toPointXYZ(keypoints_gt));
     sac_ia.setTargetFeatures(fpfhs_gt);
-    while (x!='n'){
+    int count = 0;
+    int max_count = 10;
+    while (x!='n' and count<max_count){
         sac_ia.align(ransaced_source);
         fitness_score = sac_ia.getFitnessScore(max_correspondence_distance);
         transformation_q_g = sac_ia.getFinalTransformation();
@@ -262,21 +264,23 @@ void AnalyzePC::applySACIA(){
         }
         float avg_error = fitness_score/transformed_qd_cloud->width;
         ROS_INFO("Average error (huber fitness score) is %f",avg_error);
-        if (avg_error < min_fitness_score){
-            pcl::io::savePCDFileASCII("registered_kp_cloud.pcd", ransaced_source);
+        if (avg_error <= min_fitness_score){
+            pcl::io::savePCDFileASCII("registered_kp_"+gt_name+"_"+qd_name+".pcd", ransaced_source);
             pcl::toROSMsg(ransaced_source, pc);
             pc.header.frame_id = qd_cloud->header.frame_id;
             registered_kp_pub.publish(pc);
 
-            pcl::io::savePCDFileASCII("registered_qd_cloud.pcd", *transformed_qd_cloud);
+            pcl::io::savePCDFileASCII("registered_cloud_"+gt_name+"_"+qd_name+".pcd", *transformed_qd_cloud);
             pcl::toROSMsg(*transformed_qd_cloud, pc);
             pc.header.frame_id = gt_cloud->header.frame_id;
             registered_cloud_pub.publish(pc);
             min_fitness_score = avg_error;
             std::cout << "Continue? :";
             std::cin >> x;
+            count = 0;
         }else{
             x='y';
+            count++;
         }
     }
 }
@@ -441,31 +445,45 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr toPointXYZ(pcl::PointCloud<pcl::PointXYZI>::
     return new_cloud;
 }
 
+pcl::PointCloud<Point>::Ptr AnalyzePC::getCloud(std::string base_name){
+    std::string package_path = ros::package::getPath("createCubePCL");
+    pcl::PointCloud<Point>::Ptr cloud(new pcl::PointCloud<Point>);
+    pcl::io::loadPCDFile(package_path+"/data/"+base_name+"_UnStructured.pcd", *cloud);
+    return cloud;
+}
+
 void AnalyzePC::spin(){
-    ros::Rate loop_rate(10);
+    ROS_INFO("Next Pair :%s , %s", gt_name.c_str(), qd_name.c_str());
+    ros::Rate loop_rate(1);
     found_kp = false;
     found_fh = false;
+    gt_cloud = getCloud(gt_name);
+    qd_cloud = getCloud(qd_name);
     while(ros::ok()){
         ros::spinOnce();
         //showKeyPoints(found_kp);
         //estimateFPFHFeatures(found_fh);
         showKeyPoints(true);
         estimateFPFHFeatures(true);
+        //applySACIA();
         if (found_kp and found_fh and pair_number+3<10){
-            pair_number+=2;
+            pair_number+=1;
             gt_name = names[pair_number];
             qd_name = names[(pair_number+1)];
             ROS_INFO("Next Pair :%s , %s", gt_name.c_str(), qd_name.c_str());
+            gt_cloud = getCloud(gt_name);
+            qd_cloud = getCloud(qd_name);
+            /*
             std::string gt_cloud_topic_name = "/"+gt_name+"/cloud";
             std::string qd_cloud_topic_name = "/"+qd_name+"/cloud";
             gt_cloud_sub.shutdown();
             qd_cloud_sub.shutdown();
             gt_cloud_sub = nh.subscribe(gt_cloud_topic_name, 1, &AnalyzePC::gtCloudCb, this);
             qd_cloud_sub = nh.subscribe(qd_cloud_topic_name, 1, &AnalyzePC::qdCloudCb, this);
+            */
             found_kp = false;
             found_fh = false;
         }
-        //applySACIA();
         //visualizeError();
 #ifdef VIEW_FPFH_HISTOGRAMS
         hist.spinOnce(10);
