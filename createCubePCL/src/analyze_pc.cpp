@@ -457,15 +457,16 @@ void AnalyzePC::spin(){
     ros::Rate loop_rate(1);
     found_kp = false;
     found_fh = false;
-    gt_cloud = getCloud(gt_name);
-    qd_cloud = getCloud(qd_name);
     while(ros::ok()){
         ros::spinOnce();
         //showKeyPoints(found_kp);
         //estimateFPFHFeatures(found_fh);
+        gt_cloud = getCloud(gt_name);
+        qd_cloud = getCloud(qd_name);
         showKeyPoints(true);
         estimateFPFHFeatures(true);
-        //applySACIA();
+        applySACIA();
+        /*
         if (found_kp and found_fh and pair_number+3<10){
             pair_number+=1;
             gt_name = names[pair_number];
@@ -473,17 +474,16 @@ void AnalyzePC::spin(){
             ROS_INFO("Next Pair :%s , %s", gt_name.c_str(), qd_name.c_str());
             gt_cloud = getCloud(gt_name);
             qd_cloud = getCloud(qd_name);
-            /*
             std::string gt_cloud_topic_name = "/"+gt_name+"/cloud";
             std::string qd_cloud_topic_name = "/"+qd_name+"/cloud";
             gt_cloud_sub.shutdown();
             qd_cloud_sub.shutdown();
             gt_cloud_sub = nh.subscribe(gt_cloud_topic_name, 1, &AnalyzePC::gtCloudCb, this);
             qd_cloud_sub = nh.subscribe(qd_cloud_topic_name, 1, &AnalyzePC::qdCloudCb, this);
-            */
             found_kp = false;
             found_fh = false;
         }
+        */
         //visualizeError();
 #ifdef VIEW_FPFH_HISTOGRAMS
         hist.spinOnce(10);
@@ -497,7 +497,8 @@ int main (int argc, char ** argv){
     ros::init (argc, argv, "analyze_pc");
     pair_number = 0;
     gt_name = names[pair_number];
-    qd_name = names[pair_number+1];
+    //qd_name = names[pair_number+1];
+    qd_name = names[pair_number+2];
     if (argc == 3){
         gt_name = argv[1];
         qd_name = argv[2];
