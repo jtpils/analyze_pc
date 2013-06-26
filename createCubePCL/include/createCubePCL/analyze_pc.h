@@ -11,6 +11,7 @@
 #include <pcl/features/fpfh_omp.h>
 #include <pcl/visualization/histogram_visualizer.h>
 #include <pcl/registration/ia_ransac.h>
+#include <pcl/registration/icp.h>
 #include <pcl/io/pcd_io.h>
 
 typedef pcl::PointXYZ Point;
@@ -51,6 +52,7 @@ class AnalyzePC {
     void estimateFPFHFeatures(bool cache=false);
     pcl::PointCloud<Point>::Ptr getCloud(std::string);
     void applySACIA();
+    void applyICP();
 
     double harris_radius;
     double normal_estimation_radius;
