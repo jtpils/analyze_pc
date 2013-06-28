@@ -44,15 +44,15 @@ fpfhs_qd(new pcl::PointCloud<pcl::FPFHSignature33>)
     set_parameters_server = nh.advertiseService("/analyze_pc/set_parameters",
             &AnalyzePC::setParamCb, this);
 
-    harris_radius = 0.01;
+    harris_radius = 0.1;
     nh.setParam("/analyze_pc/harris_radius", harris_radius);
-    normal_estimation_radius = 0.02;
+    normal_estimation_radius = 0.2;
     nh.setParam("/analyze_pc/normal_estimation_radius", normal_estimation_radius);
-    fpfh_estimation_radius = 0.04;
+    fpfh_estimation_radius = 0.4;
     nh.setParam("/analyze_pc/fpfh_estimation_radius", fpfh_estimation_radius);
-    min_sample_distance = 0.05;
+    min_sample_distance = 0.1;
     nh.setParam("/analyze_pc/sacia/min_sample_distance", min_sample_distance);
-    max_correspondence_distance = 0.05*0.05;
+    max_correspondence_distance = 0.1*0.1;
     nh.setParam("/analyze_pc/sacia/max_correspondence_distance",
             max_correspondence_distance);
     nr_iterations = 500;
@@ -195,6 +195,10 @@ void AnalyzePC::estimateFPFHFeatures(bool cache){
 }
 
 void AnalyzePC::applyICP(){
+    if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
+        ROS_ERROR("Not yet received point clouds");
+        return;
+    }
     pcl::PointCloud<Point> ransaced_source;
     pcl::KdTreeFLANN<Point> kdtree;
     sensor_msgs::PointCloud2 pc;
@@ -543,15 +547,17 @@ void AnalyzePC::spin(){
         ros::spinOnce();
         //showKeyPoints(found_kp);
         //estimateFPFHFeatures(found_fh);
-        gt_cloud = getCloud(gt_name);
-        qd_cloud = getCloud(qd_name);
+        //gt_cloud = getCloud(gt_name);
+        //qd_cloud = getCloud(qd_name);
+        /*
         showKeyPoints(true);
         estimateFPFHFeatures(true);
         applySACIA();
         applyICP();
         char x;
         std::cout << "Continue?";
-        std::cin >> x;
+        */
+        //std::cin >> x;
 
         /*
         if (found_kp and found_fh and pair_number+3<10){
@@ -571,7 +577,7 @@ void AnalyzePC::spin(){
             found_fh = false;
         }
         */
-        //visualizeError();
+        visualizeError();
 #ifdef VIEW_FPFH_HISTOGRAMS
         hist.spinOnce(10);
 #endif
@@ -584,7 +590,6 @@ int main (int argc, char ** argv){
     ros::init (argc, argv, "analyze_pc");
     pair_number = 0;
     gt_name = names[pair_number];
-    //qd_name = names[pair_number+1];
     qd_name = names[pair_number+2];
     if (argc == 3){
         gt_name = argv[1];
