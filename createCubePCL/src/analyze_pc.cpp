@@ -3,7 +3,7 @@
 
 #define WORLD_FRAME "/world"
 //#define CORRESPONDENCE_ONLY
-//#define ERROR_LINES_DISPLAY
+#define ERROR_LINES_DISPLAY
 //#define VIEW_FPFH_HISTOGRAMS
 #define SAVE_FPFH_HISTOGRAMS
 
@@ -380,6 +380,7 @@ void AnalyzePC::visualizeError(){
     marker.header.frame_id = WORLD_FRAME;
     marker.header.stamp = ros::Time();
     marker.id = 0;
+    marker.ns = "cube";
     marker.type = visualization_msgs::Marker::POINTS;
 #ifdef ERROR_LINES_DISPLAY
     marker.type = visualization_msgs::Marker::LINE_LIST;
@@ -404,7 +405,8 @@ void AnalyzePC::visualizeError(){
     tf::StampedTransform tqg = getTransform(qd_cloud->header.frame_id, gt_cloud->header.frame_id);
     std_msgs::ColorRGBA c;
 
-    pcl::transformPointCloud(*qd_cloud, *transformed_qd_cloud, transformation_q_g);
+    //pcl::transformPointCloud(*qd_cloud, *transformed_qd_cloud, transformation_q_g);
+    transformed_qd_cloud = qd_cloud;
 
     pcl::KdTreeFLANN<Point> kdtree;
     kdtree.setInputCloud(gt_cloud);
@@ -540,7 +542,7 @@ pcl::PointCloud<Point>::Ptr AnalyzePC::getCloud(std::string base_name){
 
 void AnalyzePC::spin(){
     ROS_INFO("Next Pair :%s , %s", gt_name.c_str(), qd_name.c_str());
-    ros::Rate loop_rate(1);
+    ros::Rate loop_rate(10);
     found_kp = false;
     found_fh = false;
     while(ros::ok()){
