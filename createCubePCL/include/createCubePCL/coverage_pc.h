@@ -37,6 +37,6 @@ class CoveragePC {
     void qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
     void findCorrespondences();
 
-    float max_correspondence_error;
+    float max_correspondence_distance;
 };
 #endif
