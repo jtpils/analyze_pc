@@ -23,7 +23,7 @@ cov_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
     qd_cloud_sub = nh.subscribe(qd_cloud_topic_name, 1, &CoveragePC::qdCloudCb, this);
     coverage_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/coverage_pc/"+gt_name+"_"+qd_name+"_coverage",1);
     set_parameters_server = nh.advertiseService("/coverage_pc/set_parameters", &CoveragePC::setParamCb, this);
-    max_correspondence_distance = 0.05*0.05;
+    max_correspondence_distance = 0.05;
     nh.setParam("/coverage_pc/max_correspondence_distance", max_correspondence_distance);
 }
 
@@ -43,7 +43,7 @@ bool CoveragePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Resp
 
 void CoveragePC::findCorrespondences(){
     if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
-        ROS_ERROR("Not yet received point clouds");
+        ROS_WARN("Not yet received point clouds");
         return;
     }
     //ROS_INFO("Find correspondences between pointclouds");
@@ -55,6 +55,7 @@ void CoveragePC::findCorrespondences(){
     std::vector<bool> qd_covered;
     gt_covered.clear();
     qd_covered.clear();
+    cloud_corresp.clear();
     cov_cloud->points.clear();
     std::string gt_frame = gt_cloud->header.frame_id;
     std::string qd_frame = qd_cloud->header.frame_id;
@@ -75,20 +76,23 @@ void CoveragePC::findCorrespondences(){
         Eigen::Vector4f p1 = Eigen::Vector4f (searchPoint.x, searchPoint.y, searchPoint.z, 0);
         Eigen::Vector4f p2 = Eigen::Vector4f (resultPoint.x, resultPoint.y, resultPoint.z, 0);
         distance = (p1-p2).squaredNorm();
-        if (distance < max_correspondence_distance){
+        if (distance < max_correspondence_distance*max_correspondence_distance){
             gt_covered[point_index] = true;
             convertPoints(point, resultPoint);
             colorIt(point, 0);
             cov_cloud->points.push_back(transformPoint(point, tgw));
+            cloud_corresp.push_back(mBCL);
             qd_covered.push_back(true);
             convertPoints(point, searchPoint);
             colorIt(point, 0);
             cov_cloud->points.push_back(transformPoint(point, tgw));
+            cloud_corresp.push_back(mBCL);
         }else{
             qd_covered.push_back(false);
             convertPoints(point, searchPoint);
             colorIt(point, 2);
             cov_cloud->points.push_back(transformPoint(point, tgw));
+            cloud_corresp.push_back(mQCL);
         }
     }
     for (size_t i=0; i<gt_cloud->size(); ++i){
@@ -101,11 +105,13 @@ void CoveragePC::findCorrespondences(){
             Eigen::Vector4f p2 = Eigen::Vector4f (resultPoint.x, resultPoint.y, resultPoint.z, 0);
             distance = (p1-p2).squaredNorm();
             convertPoints(point, searchPoint);
-            if (distance < max_correspondence_distance){
+            if (distance < max_correspondence_distance*max_correspondence_distance){
                 gt_covered[i] = true;
                 colorIt(point, 0);
+                cloud_corresp.push_back(mBCL);
             }else{
                 colorIt(point, 1);
+                cloud_corresp.push_back(mGCL);
             }
             cov_cloud->points.push_back(transformPoint(point, tqw));
         }
@@ -117,11 +123,51 @@ void CoveragePC::findCorrespondences(){
     coverage_cloud_pub.publish(pc);
 }
 
+// Estimating coverage after establishing which part each point belongs to
+// For each point, find the local density and give area corresponding to it
+// to it
+void CoveragePC::estimateCoverage(){
+    if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
+        ROS_WARN("Not yet received point clouds");
+        return;
+    }
+    ROS_INFO("Estimating Coverage of pointclouds");
+    pcl::KdTreeFLANN<Point> kdtree_cov;
+    kdtree_cov.setInputCloud(cov_cloud);
+    std::vector<int> k_indices;
+    std::vector<float> k_sqr_distances;
+    Point focusPoint;
+    int no_of_points;
+    for (int i=0; i<3; ++i){
+        cloud_fractions[i] = 0;
+    }
+    ROS_INFO("Estimating Coverage of pointclouds");
+    for (size_t i=0; i<cov_cloud->size(); ++i){
+        focusPoint = cov_cloud->points[i];
+        no_of_points = kdtree_cov.radiusSearch(focusPoint, max_correspondence_distance, k_indices, k_sqr_distances);
+        if (no_of_points>0){
+            cloud_fractions[(int)cloud_corresp[i]] += 1/no_of_points;
+        }
+    }
+    float sum_fractions=0.0;
+    for (int i=0; i<3; ++i){
+        sum_fractions+=cloud_fractions[i];
+    }
+    std::cerr << "sum of fractions is :" << sum_fractions << "\n";
+    std::cerr << "Fractions of cloud in Both, GC and QC :";
+    for (int i=0; i<3; ++i){
+        cloud_fractions[i] = cloud_fractions[i]/sum_fractions;
+        std::cerr << cloud_fractions[i] << " ";
+    }
+    std::cerr<<"\n";
+}
+
 void CoveragePC::spin(){
     ros::Rate loop_rate(10);
     while (ros::ok()){
         ros::spinOnce();
         findCorrespondences();
+        estimateCoverage();
         loop_rate.sleep();
     }
 }
