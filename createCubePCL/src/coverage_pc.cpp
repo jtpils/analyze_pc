@@ -93,10 +93,10 @@ void CoveragePC::findCorrespondences(){
             }
         }
     }
-
     sensor_msgs::PointCloud2 pc;
     pcl::toROSMsg(*cov_cloud, pc);
     pc.header.frame_id= WORLD_FRAME;
+    //std::cerr << "coverage cloud :" << cov_cloud->size() << "\n";
     coverage_cloud_pub.publish(pc);
 }
 
@@ -128,14 +128,14 @@ void convertPoints(pcl::PointXYZRGB& p, Point& q){
 }
 
 void colorIt(pcl::PointXYZRGB& p, int color){
-    p.r = 0;
-    p.g = 0;
-    p.b = 0;
+    uint8_t r=0,g=0,b=0;
     switch(color){
-        case 0: p.r = 1;
-        case 1: p.g = 1;
-        case 2: p.b = 1;
+        case 0: r = 255; break;
+        case 1: g = 255; break;
+        case 2: b = 255; break;
     }
+    uint32_t rgb = ((uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b);
+    p.rgb = *reinterpret_cast<float*>(&rgb);
 }
 
 int main (int argc, char ** argv){
