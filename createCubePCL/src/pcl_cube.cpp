@@ -122,7 +122,7 @@ void PCLCube::generatePlanePoints(pcl::PointNormal center, int index){
     size_t height = width;//cube_cloud.height;
     float error_n1=0, error_n2=0, error_n3=0;
     float fraction = occluded_fraction[index];
-    int start_occlusion_index, end_occlusion_index;
+    int start_occlusion_index=0, end_occlusion_index=0;
     if (fraction >= 0 and fraction <= 1){
         int possible_range = (1-fraction)*width*height;
         start_occlusion_index = rand()%possible_range;
@@ -153,8 +153,9 @@ void PCLCube::generatePlanePoints(pcl::PointNormal center, int index){
                 point.x = center.x + (n1_factor+error_n1)*n1.normal[0] + (n2_factor+error_n2)*n2.normal[0] + error_n3*n3.normal[0];
                 point.y = center.y + (n1_factor+error_n1)*n1.normal[1] + (n2_factor+error_n2)*n2.normal[1] + error_n3*n3.normal[1];
                 point.z = center.z + (n1_factor+error_n1)*n1.normal[2] + (n2_factor+error_n2)*n2.normal[2]+error_n3*n3.normal[2];
+                cube_cloud.points.push_back(point);
             }
-            cube_cloud[i*width+j] = point;
+            //cube_cloud[i*width+j] = point;
         }
     }
 }
@@ -168,11 +169,13 @@ void PCLCube::generatePoints(){
     cube_cloud.header.frame_id = "/laser_"+cube_name;
     cube_cloud.width = 6*(points_per_unit*dense_scale)*(points_per_unit*dense_scale);
     cube_cloud.height = 1;
-    cube_cloud.points.resize(cube_cloud.width*cube_cloud.height);
+    //cube_cloud.points.resize(cube_cloud.width*cube_cloud.height);
+    cube_cloud.points.clear();
     for (int i=0; i<6; ++i){
         generatePlanePoints(findFaceCenter(i/2, direction), i);
         direction = (!direction);
     }
+    cube_cloud.width = cube_cloud.points.size();
 }
 
 double PCLCube::getGaussian(double variance){

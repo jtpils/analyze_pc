@@ -1,10 +1,15 @@
 #include <createCubePCL/pcl_cube.h>
 
+float frand(){
+    return (float)rand()/(float)RAND_MAX;
+}
+
 int main (int argc, char ** argv){
     ros::init (argc, argv, "two_cubes_compare");
     RandomGen rng(static_cast<unsigned> (time(0)));
     NormalDist gaussian_dist(0,1);
     GaussianGen generator(rng,gaussian_dist);
+    srand((unsigned)time(0));
     pcl::PointXYZ world_cube_center(0,0,0);
     Eigen::Quaterniond world_cube_orientation;
     world_cube_orientation.setIdentity();
@@ -13,7 +18,14 @@ int main (int argc, char ** argv){
     //c1->addNoiseToCenter(generator);
     //c1->addNoiseToOrientation(generator);
     c1->addNoise(generator);
-    float occlusion_fraction[6] = {0.5,0,0,0,0,0.5};
+    //float occlusion_fraction[6] = {0.5,0,0,0,0,0.5};
+    float occlusion_fraction[6];
+    std::cerr << "Occlusion Fractions: ";
+    for (int i=0; i<6; ++i){
+        occlusion_fraction[i] = frand();
+        std::cerr << occlusion_fraction[i] << " ";
+    }
+    std::cerr << "\n";
     c1->setOcclusion(occlusion_fraction);
     c1->changeCenterTo(world_cube_center, true);
     c1->changeOrientationBy(world_cube_orientation, true);
