@@ -1,7 +1,7 @@
 Background\ ColorB=0
 Background\ ColorG=0
 Background\ ColorR=0
-Camera\ Config=0.239797 3.97719 1.97371 0 -1.90735e-06 1.90735e-06
+Camera\ Config=0.0652049 5.57221 2.41661 0 -1.90735e-06 1.90735e-06
 Camera\ Type=rviz::OrbitViewController
 Cube1Cloud..AxisColorAutocompute\ Value\ Bounds=1
 Cube1Cloud..AxisColorAxis=2
@@ -81,18 +81,18 @@ PointCloud2..IntensityMin\ ColorG=0
 PointCloud2..IntensityMin\ ColorR=0
 PointCloud2..IntensityMin\ Intensity=-0.548954
 PointCloud2..IntensityUse\ full\ RGB\ spectrum=1
-PointCloud2.Alpha=0.7
-PointCloud2.Billboard\ Size=0.01
+PointCloud2.Alpha=1
+PointCloud2.Billboard\ Size=0.025
 PointCloud2.Color\ Transformer=RGB8
 PointCloud2.Decay\ Time=0
 PointCloud2.Enabled=1
 PointCloud2.Position\ Transformer=XYZ
 PointCloud2.Queue\ Size=10
 PointCloud2.Selectable=1
-PointCloud2.Style=0
-PointCloud2.Topic=/coverage_pc/cube1_cube2_coverage
+PointCloud2.Style=1
+PointCloud2.Topic=/coverage_pc/cube2_cube1_coverage
 Property\ Grid\ Splitter=565,0
-Property\ Grid\ State=expanded=.Global Options,.Global Status,PointCloud2.Enabled,PointCloud2.Status;splitterratio=0.5
+Property\ Grid\ State=expanded=.Global Options,.Global Status,Cube2Cloud.Enabled,PointCloud2.Enabled,PointCloud2.Status;splitterratio=0.5
 QMainWindow=000000ff00000000fd00000003000000000000013700000287fc0200000001fb000000100044006900730070006c006100790073010000001d00000287000000ee00ffffff000000010000013100000287fc0200000003fb0000001e0054006f006f006c002000500072006f0070006500720074006900650073010000001d000000bb0000006700fffffffb0000000a0056006900650077007301000000de00000122000000bb00fffffffb0000001200530065006c0065006300740069006f006e01000002060000009e0000006700ffffff00000003000005560000003efc0100000001fb0000000800540069006d0065010000000000000556000002bf00ffffff000002e20000028700000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
 TF.All\ Enabled=1
 TF.Enabled=0

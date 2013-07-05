@@ -20,12 +20,16 @@ int main (int argc, char ** argv){
     c1->addNoise(generator);
     //float occlusion_fraction[6] = {0.5,0,0,0,0,0.5};
     float occlusion_fraction[6];
+    float avg_occ=0.0;
     std::cerr << "Occlusion Fractions: ";
     for (int i=0; i<6; ++i){
         occlusion_fraction[i] = frand();
         std::cerr << occlusion_fraction[i] << " ";
+        avg_occ += occlusion_fraction[i];
     }
+    avg_occ = avg_occ/6;
     std::cerr << "\n";
+    std::cerr << "Total occluded fraction : " << avg_occ << "\n";
     c1->setOcclusion(occlusion_fraction);
     c1->changeCenterTo(world_cube_center, true);
     c1->changeOrientationBy(world_cube_orientation, true);
