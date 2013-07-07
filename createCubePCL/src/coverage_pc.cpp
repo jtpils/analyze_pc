@@ -1,5 +1,6 @@
 #include <createCubePCL/coverage_pc.h>
 #include "dm_colors.hpp"
+#include <fstream>
 
 #define WORLD_FRAME "/world"
 
@@ -8,6 +9,7 @@ void convertPoints(pcl::PointXYZRGB& p, Point& q);
 void colorIt(pcl::PointXYZRGB& p, int color);
 Point transformPoint(Point& p, tf::StampedTransform t);
 tf::StampedTransform getTransform(std::string from_frame, std::string to_frame);
+bool continueLoop();
 
 std::string qd_name;
 std::string gt_name;
@@ -25,6 +27,10 @@ cov_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
     set_parameters_server = nh.advertiseService("/coverage_pc/set_parameters", &CoveragePC::setParamCb, this);
     max_correspondence_distance = 0.05;
     nh.setParam("/coverage_pc/max_correspondence_distance", max_correspondence_distance);
+    min_nn = 10;
+    nh.setParam("/coverage_pc/min_nn", min_nn);
+    min_nn_factor = 0.8;
+    nh.setParam("/coverage_pc/min_nn_factor", min_nn_factor);
 }
 
 void CoveragePC::gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
@@ -37,7 +43,8 @@ void CoveragePC::qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
 
 bool CoveragePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
     nh.getParam("/coverage_pc/max_correspondence_distance", max_correspondence_distance);
-    //std::cerr << " max correspondence distance :" << max_correspondence_distance << "\n";
+    nh.getParam("/coverage_pc/min_nn", min_nn);
+    nh.getParam("/coverage_pc/min_nn_factor", min_nn_factor);
     return true;
 }
 
@@ -68,7 +75,8 @@ void CoveragePC::findCorrespondences(){
     for (size_t i=0; i<gt_cloud->size(); ++i){
         gt_covered.push_back(false);
     }
-    for (size_t i=0; i<qd_cloud->width; ++i){
+    int counter=0;
+    for (size_t i=0; i<qd_cloud->size(); ++i){
         pcl::PointXYZRGB point;
         Point searchPoint = transformPoint(qd_cloud->points[i], tqg);
         int point_index = findNearestPointIndices(searchPoint, gt_cloud, kdtree_gt, 1)[0];
@@ -77,20 +85,25 @@ void CoveragePC::findCorrespondences(){
         Eigen::Vector4f p2 = Eigen::Vector4f (resultPoint.x, resultPoint.y, resultPoint.z, 0);
         distance = (p1-p2).squaredNorm();
         if (distance < max_correspondence_distance*max_correspondence_distance){
-            gt_covered[point_index] = true;
-            convertPoints(point, resultPoint);
-            colorIt(point, 0);
-            cov_cloud->points.push_back(transformPoint(point, tgw));
-            cloud_corresp.push_back(mBCL);
+            if (!gt_covered[point_index]){
+                gt_covered[point_index] = true;
+                convertPoints(point, resultPoint);
+                colorIt(point, 0);
+                cov_cloud->points.push_back(transformPoint(point, tgw));
+                counter++;
+                cloud_corresp.push_back(mBCL);
+            }
             qd_covered.push_back(true);
             convertPoints(point, searchPoint);
             colorIt(point, 0);
+            counter++;
             cov_cloud->points.push_back(transformPoint(point, tgw));
             cloud_corresp.push_back(mBCL);
         }else{
             qd_covered.push_back(false);
             convertPoints(point, searchPoint);
             colorIt(point, 2);
+            counter++;
             cov_cloud->points.push_back(transformPoint(point, tgw));
             cloud_corresp.push_back(mQCL);
         }
@@ -114,24 +127,43 @@ void CoveragePC::findCorrespondences(){
                 cloud_corresp.push_back(mGCL);
             }
             cov_cloud->points.push_back(transformPoint(point, tqw));
+            counter++;
         }
     }
+
     cov_cloud->header.frame_id = WORLD_FRAME;
+    cov_cloud->height = 1;
+    cov_cloud->width = cov_cloud->size();
     sensor_msgs::PointCloud2 pc;
     pcl::toROSMsg(*cov_cloud, pc);
     //std::cerr << "coverage cloud :" << cov_cloud->size() << "\n";
     coverage_cloud_pub.publish(pc);
 }
 
+float CoveragePC::areaFunction(int n){
+    float K = min_nn_factor*min_nn_factor*min_nn*min_nn*min_nn*(1-min_nn_factor);
+    if (n < min_nn_factor*min_nn){
+        return n*(min_nn-n)/K;
+    }else{
+        return 1.0/(float)n;
+    }
+}
+
 // Estimating coverage after establishing which part each point belongs to
 // For each point, find the local density and give area corresponding to it
 // to it
 void CoveragePC::estimateCoverage(){
+    std::ofstream fout[3];
+    for (int i=0; i<3; ++i){
+        fout[i].open((boost::to_string(i)+"_data.txt").c_str(), std::ofstream::out);
+    }
     if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
         ROS_WARN("Not yet received point clouds");
         return;
     }
     ROS_INFO("Estimating Coverage of pointclouds");
+    ROS_INFO("No. of points are : %d %d %d", gt_cloud->size(), qd_cloud->size(), cov_cloud->size());
+    ROS_INFO("No. of points are? : %d %d %d", gt_cloud->width, qd_cloud->width, cov_cloud->width);
     pcl::KdTreeFLANN<Point> kdtree_cov;
     kdtree_cov.setInputCloud(cov_cloud);
     std::vector<int> k_indices;
@@ -146,12 +178,15 @@ void CoveragePC::estimateCoverage(){
         focusPoint = cov_cloud->points[i];
         no_of_points = kdtree_cov.radiusSearch(focusPoint, max_correspondence_distance, k_indices, k_sqr_distances);
         if (no_of_points>0){
-            cloud_fractions[(int)cloud_corresp[i]] += 1/no_of_points;
+            cloud_fractions[(int)cloud_corresp[i]] += areaFunction(no_of_points);
         }
+        fout[cloud_corresp[i]] << no_of_points << "\n";
     }
     float sum_fractions=0.0;
+    std::cerr << "fractions : ";
     for (int i=0; i<3; ++i){
         sum_fractions+=cloud_fractions[i];
+        std::cerr << cloud_fractions[i] << " ";
     }
     std::cerr << "sum of fractions is :" << sum_fractions << "\n";
     std::cerr << "Fractions of cloud in Both, GC and QC :";
@@ -160,6 +195,9 @@ void CoveragePC::estimateCoverage(){
         std::cerr << cloud_fractions[i] << " ";
     }
     std::cerr<<"\n";
+    for (int i=0; i<3; ++i){
+        fout[i].close();
+    }
 }
 
 void CoveragePC::spin(){
@@ -169,6 +207,19 @@ void CoveragePC::spin(){
         findCorrespondences();
         estimateCoverage();
         loop_rate.sleep();
+        if (!continueLoop()) break;
+        ROS_INFO(" ");
+    }
+}
+
+bool continueLoop(){
+    char x;
+    std::cout << "Continue? ";
+    std::cin >> x;
+    if (x=='n'){
+        return false;
+    }else{
+        return true;
     }
 }
 

@@ -42,8 +42,11 @@ class CoveragePC {
     bool setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
     void findCorrespondences();
     void estimateCoverage();
+    float areaFunction(int);
 
     double max_correspondence_distance;
     float cloud_fractions[3];
+    int min_nn;
+    double min_nn_factor;
 };
 #endif
