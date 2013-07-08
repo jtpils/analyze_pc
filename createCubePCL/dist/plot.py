@@ -5,6 +5,7 @@ import roslib
 import rospy
 from std_srvs.srv import *
 import os
+import time
 
 mcd_array=[0.01*i for i in range(1,11)]
 mcd_array.append(0.2)
@@ -13,6 +14,8 @@ for tn in range(len(mcd_array)):
     max_correspondence_distance = mcd_array[tn]
     rospy.set_param("/coverage_pc/max_correspondence_distance", max_correspondence_distance)
     rospy.set_param("/coverage_pc/test_number", tn)
+    set_param_call()
+    time.sleep(1)
     sample=tn
     fin=[]
     data = []
@@ -28,11 +31,19 @@ for tn in range(len(mcd_array)):
            os.makedirs(mypath)
     for i in range(3):
         plt.subplot(1,3,i+1)
-        fin.append(open(str(sample)+"/"+str(i)+"_data.txt","r"))
+        got = False
+        while not got:
+            try:
+                x = open(str(sample)+"/"+str(i)+"_data.txt","r")
+                fin.append(x)
+                got = True
+            except(IOError):
+                time.sleep(1)
         data.append(map(int,fin[i].read().split()))
         #Now drawing a histogram of the data
-        plt.hist(data[i],bins=max(data[i])-min(data[i]))
-        plt.title("Histogram of NN :"+titles[i])
+        plt.hist(data[i],bins=max(1,max(data[i])-min(data[i])))
+        #plt.title("Histogram of NN :"+titles[i])
+        plt.title("HNN :"+titles[i])
         plt.xlabel("Value")
         plt.ylabel("Frequency")
         #print data[i]
@@ -48,6 +59,8 @@ for tn in range(len(mcd_array)):
     mypath = "./hist/"
     if not os.path.isdir(mypath):
            os.makedirs(mypath)
-    plt.savefig("hist/"+str(tn)+"_plot.png")
+    figure = plt.gcf() # get current figure
+    figure.set_size_inches(16, 8)
+    plt.savefig("hist/"+str(tn)+"_plot.png", bbox_inches=0, dpi=100)
     data_out.close()
 print "Ending program"
