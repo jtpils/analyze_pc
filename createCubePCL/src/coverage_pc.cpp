@@ -18,6 +18,7 @@ std::string qd_name;
 std::string gt_name;
 float md,vd;
 int cutoff_nn;
+double avg_occ;
 
 CoveragePC::CoveragePC():
 gt_cloud(new pcl::PointCloud<Point>),
@@ -125,14 +126,14 @@ void CoveragePC::findCorrespondences(){
             convertPoints(point, searchPoint);
             colorIt(point, 0);
             counter++;
-            cov_cloud->points.push_back(transformPoint(point, tgw));
+            //cov_cloud->points.push_back(transformPoint(point, tgw));
             cloud_corresp.push_back(mBCL);
         }else{
             qd_covered.push_back(false);
             convertPoints(point, searchPoint);
             colorIt(point, 2);
             counter++;
-            cov_cloud->points.push_back(transformPoint(point, tgw));
+            //cov_cloud->points.push_back(transformPoint(point, tgw));
             cloud_corresp.push_back(mQCL);
         }
     }
@@ -181,10 +182,10 @@ void CoveragePC::findCorrespondences(){
 
 float CoveragePC::areaFunction(int n){
     float K = min_nn_factor*min_nn_factor*min_nn*min_nn*min_nn*(1-min_nn_factor);
-    //if (n < min_nn_factor*min_nn){
-    //    return n*(min_nn-n)/K;
-    if (n < cutoff_nn){
-        return 0;
+    if (n < min_nn_factor*min_nn){
+        return n*(min_nn-n)/K;
+    //if (n < cutoff_nn){
+     //   return 0;
         //return 1.0/(float)n;
     }else{
         return 1.0/(float)n;
@@ -218,7 +219,9 @@ void CoveragePC::estimateCoverage(){
     std::ofstream fro;
     fro.open("dist/fraction_data.txt", std::ofstream::out | std::ofstream::app);
     fro << max_correspondence_distance << "\n";
-    fro << md << " " << vd << " " << md/count << " ";
+    //fro << md << " " << vd << " " << md/count << " ";
+    nh.getParam("/compare_two_cubes/avg_occ", avg_occ);
+    fro << avg_occ << " ";
 #endif
     if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
         ROS_WARN("Not yet received point clouds");
