@@ -4,8 +4,8 @@
 #include <fstream>
 
 #define WORLD_FRAME "/world"
-//#define PRINT_NN_DATA
-#define SAVE_COV_DATA
+#define PRINT_NN_DATA
+//#define SAVE_COV_DATA
 
 std::vector<int> findNearestPointIndices(Point& searchPoint, pcl::PointCloud<Point>::Ptr& cloud, pcl::KdTreeFLANN<Point>& kdtree, int K);
 void convertPoints(pcl::PointXYZRGB& p, Point& q);
@@ -16,6 +16,8 @@ bool continueLoop();
 
 std::string qd_name;
 std::string gt_name;
+float md,vd;
+int cutoff_nn;
 
 CoveragePC::CoveragePC():
 gt_cloud(new pcl::PointCloud<Point>),
@@ -36,6 +38,8 @@ cov_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
     nh.setParam("/coverage_pc/min_nn_factor", min_nn_factor);
     test_number = 0;
     nh.setParam("/coverage_pc/test_number", test_number);
+    cutoff_nn = 5;
+    nh.setParam("/coverage_pc/cutoff_nn", cutoff_nn);
     data_generated = false;
 #ifdef SAVE_COV_DATA
     data_generated = true;
@@ -58,6 +62,7 @@ bool CoveragePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Resp
     nh.getParam("/coverage_pc/min_nn", min_nn);
     nh.getParam("/coverage_pc/min_nn_factor", min_nn_factor);
     nh.getParam("/coverage_pc/test_number", test_number);
+    nh.getParam("/coverage_pc/cutoff_nn", cutoff_nn);
 #ifdef PRINT_NN_DATA
     data_generated = false;
 #endif
@@ -95,6 +100,8 @@ void CoveragePC::findCorrespondences(){
         gt_covered.push_back(false);
     }
     int counter=0;
+    float sum_distance = 0;
+    std::vector<float> distance_array;
     for (size_t i=0; i<qd_cloud->size(); ++i){
         pcl::PointXYZRGB point;
         Point searchPoint = transformPoint(qd_cloud->points[i], tqg);
@@ -111,6 +118,8 @@ void CoveragePC::findCorrespondences(){
                 cov_cloud->points.push_back(transformPoint(point, tgw));
                 counter++;
                 cloud_corresp.push_back(mBCL);
+        sum_distance += sqrt(distance);
+        distance_array.push_back(sqrt(distance));
             }
             qd_covered.push_back(true);
             convertPoints(point, searchPoint);
@@ -129,18 +138,20 @@ void CoveragePC::findCorrespondences(){
     }
     for (size_t i=0; i<gt_cloud->size(); ++i){
         pcl::PointXYZRGB point;
+        Point searchPoint = transformPoint(gt_cloud->points[i], tgq);
+        int rev_index = findNearestPointIndices(searchPoint, qd_cloud, kdtree_qd, 1)[0];
+        Point resultPoint = qd_cloud->points[rev_index];
+        Eigen::Vector4f p1 = Eigen::Vector4f (searchPoint.x, searchPoint.y, searchPoint.z, 0);
+        Eigen::Vector4f p2 = Eigen::Vector4f (resultPoint.x, resultPoint.y, resultPoint.z, 0);
+        distance = (p1-p2).squaredNorm();
         if (!gt_covered[i]){
-            Point searchPoint = transformPoint(gt_cloud->points[i], tgq);
-            int rev_index = findNearestPointIndices(searchPoint, qd_cloud, kdtree_qd, 1)[0];
-            Point resultPoint = qd_cloud->points[rev_index];
-            Eigen::Vector4f p1 = Eigen::Vector4f (searchPoint.x, searchPoint.y, searchPoint.z, 0);
-            Eigen::Vector4f p2 = Eigen::Vector4f (resultPoint.x, resultPoint.y, resultPoint.z, 0);
-            distance = (p1-p2).squaredNorm();
             convertPoints(point, searchPoint);
             if (distance < max_correspondence_distance*max_correspondence_distance){
                 gt_covered[i] = true;
                 colorIt(point, 0);
                 cloud_corresp.push_back(mBCL);
+        sum_distance += sqrt(distance);
+        distance_array.push_back(sqrt(distance));
             }else{
                 colorIt(point, 1);
                 cloud_corresp.push_back(mGCL);
@@ -157,12 +168,24 @@ void CoveragePC::findCorrespondences(){
     pcl::toROSMsg(*cov_cloud, pc);
     //std::cerr << "coverage cloud :" << cov_cloud->size() << "\n";
     coverage_cloud_pub.publish(pc);
+
+    md = sum_distance/cov_cloud->size();
+    ROS_INFO("Mean distance from nearest neighbor is : %f", md);
+    float sum_sq_diff=0;
+    for (size_t i=0; i<distance_array.size(); ++i){
+        sum_sq_diff += (distance_array[i]-md)*(distance_array[i]-md);
+    }
+    vd = sum_sq_diff/cov_cloud->size();
+    ROS_INFO("Variance of distance from nearest neighbor is : %f", vd);
 }
 
 float CoveragePC::areaFunction(int n){
     float K = min_nn_factor*min_nn_factor*min_nn*min_nn*min_nn*(1-min_nn_factor);
-    if (n < min_nn_factor*min_nn){
-        return n*(min_nn-n)/K;
+    //if (n < min_nn_factor*min_nn){
+    //    return n*(min_nn-n)/K;
+    if (n < cutoff_nn){
+        return 0;
+        //return 1.0/(float)n;
     }else{
         return 1.0/(float)n;
     }
@@ -184,6 +207,18 @@ void CoveragePC::estimateCoverage(){
     for (int i=0; i<3; ++i){
         fout[i].open(("dist/"+boost::to_string(test_number)+"/"+boost::to_string(i)+"_data.txt").c_str(), std::ofstream::out);
     }
+#endif
+    int count =0;
+    for (size_t i=0; i<cov_cloud->size(); ++i){
+        if (cloud_corresp[i] == mBCL){
+            count++;
+        }
+    }
+#ifdef PRINT_NN_DATA
+    std::ofstream fro;
+    fro.open("dist/fraction_data.txt", std::ofstream::out | std::ofstream::app);
+    fro << max_correspondence_distance << "\n";
+    fro << md << " " << vd << " " << md/count << " ";
 #endif
     if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
         ROS_WARN("Not yet received point clouds");
@@ -238,6 +273,9 @@ void CoveragePC::estimateCoverage(){
 #ifdef SAVE_COV_DATA
         resout << cloud_fractions[i] << " ";
 #endif
+#ifdef PRINT_NN_DATA
+        fro << cloud_fractions[i] << " ";
+#endif
     }
     std::cerr<<"\n";
 #ifdef SAVE_COV_DATA
@@ -246,6 +284,8 @@ void CoveragePC::estimateCoverage(){
     data_generated = true;
 #endif
 #ifdef PRINT_NN_DATA
+    fro << "\n";
+    fro.close();
     for (int i=0; i<3; ++i){
         fout[i].close();
     }

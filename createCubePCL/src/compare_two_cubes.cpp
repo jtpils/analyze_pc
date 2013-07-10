@@ -30,7 +30,7 @@ int main (int argc, char ** argv){
     avg_occ = avg_occ/6;
     std::cerr << "\n";
     std::cerr << "Total occluded fraction : " << avg_occ << "\n";
-    c1->setOcclusion(occlusion_fraction);
+    c2->setOcclusion(occlusion_fraction); // GT cube is occluded
     c1->changeCenterTo(world_cube_center, true);
     c1->changeOrientationBy(world_cube_orientation, true);
     c1->colorIt(255,0,0);
