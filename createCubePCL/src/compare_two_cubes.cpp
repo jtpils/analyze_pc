@@ -32,7 +32,7 @@ int main (int argc, char ** argv){
     nh.setParam("/compare_two_cubes/avg_occ", avg_occ);
     std::cerr << "\n";
     std::cerr << "Total occluded fraction : " << avg_occ << "\n";
-    c2->setOcclusion(occlusion_fraction); // GT cube is occluded
+    //c2->setOcclusion(occlusion_fraction); // GT cube is occluded
     c1->changeCenterTo(world_cube_center, true);
     c1->changeOrientationBy(world_cube_orientation, true);
     c1->colorIt(255,0,0);

@@ -248,6 +248,9 @@ void CoveragePC::estimateCoverage(){
     for (int i=0; i<3; ++i){
         cloud_fractions[i] = 0;
     }
+    std::ofstream area_data;
+    area_data.open("test/area_estimate.txt", std::ofstream::out | std::ofstream::app);
+    area_data << sqrt(gt_cloud->size()/1536)-1 << "\n";
     float sum_area[3] = {0,0,0};
     for (size_t i=0; i<cov_cloud->size(); ++i){
         focusPoint = cov_cloud->points[i];
@@ -266,8 +269,11 @@ void CoveragePC::estimateCoverage(){
     std::cerr << "Area estimates : ";
     for (int i=0; i<3; ++i){
         std::cerr << sum_area[i] << " ";
+        area_data << sum_area[i] << " ";
     }
     std::cerr << "\n";
+    area_data << "\n";
+    area_data.close();
 #ifdef SAVE_COV_DATA
     for (int i=0; i<3; ++i){
         resout << corr_np[i] << " ";
