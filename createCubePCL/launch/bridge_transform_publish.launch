@@ -1,0 +1,11 @@
+<?xml version="0.0"?>
+
+<launch>
+    <arg name="gt_name" default="laser0"/>
+    <arg name="qd_name" default="laser1"/>
+
+    <node name="static_tf2" pkg="tf" type="static_transform_publisher" args="0 0 24 0 0 0 1 /world /mesh_frame 20" />
+    <node name="static_tf_$(arg qd_name)" pkg="tf" type="static_transform_publisher" args="10 -20 0 0 0 0 1 /world /$(arg qd_name)_frame 20" />
+    <node name="static_tf_$(arg gt_name)" pkg="tf" type="static_transform_publisher" args="-10 20 0 0 0 0 1 /world /$(arg gt_name)_frame 20" />
+
+</launch>

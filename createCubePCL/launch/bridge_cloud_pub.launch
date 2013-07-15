@@ -8,10 +8,6 @@
     <param name="/mesh_path" value="$(find mission_resources)/bridge_inspection/" />
     <param name="/mesh_fname" value="$(arg mesh_fname)" />
 
-    <node name="static_tf2" pkg="tf" type="static_transform_publisher" args="0 0 24 0 0 0 1 /world /mesh_frame 20" />
-    <node name="static_tf_$(arg qd_name)" pkg="tf" type="static_transform_publisher" args="10 -20 0 0 0 0 1 /world /$(arg qd_name)_frame 20" />
-    <node name="static_tf_$(arg gt_name)" pkg="tf" type="static_transform_publisher" args="-10 20 0 0 0 0 1 /world /$(arg gt_name)_frame 20" />
-
     <node name="bridge_scannersim_$(arg qd_name)" pkg="bridge_scannersim" type="bridge_scannersim" args="$(arg qd_name)_frame" output="screen">
         <remap from="/cloud" to="/$(arg qd_name)/cloud"/>
     </node>

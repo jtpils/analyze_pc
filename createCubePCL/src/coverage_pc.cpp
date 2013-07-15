@@ -7,7 +7,7 @@
 #include <fstream>
 
 #define WORLD_FRAME "/world"
-#define PRINT_NN_DATA
+//#define PRINT_NN_DATA
 //#define SAVE_COV_DATA
 
 std::string qd_name;
@@ -27,7 +27,7 @@ cov_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
     qd_cloud_sub = nh.subscribe(qd_cloud_topic_name, 1, &CoveragePC::qdCloudCb, this);
     coverage_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/coverage_pc/"+gt_name+"_"+qd_name+"_coverage",1);
     set_parameters_server = nh.advertiseService("/coverage_pc/set_parameters", &CoveragePC::setParamCb, this);
-    max_correspondence_distance = 0.05;
+    max_correspondence_distance = 1.2;
     nh.setParam("/coverage_pc/max_correspondence_distance", max_correspondence_distance);
     min_nn = 10;
     nh.setParam("/coverage_pc/min_nn", min_nn);
