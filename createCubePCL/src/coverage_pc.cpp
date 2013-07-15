@@ -1,18 +1,14 @@
+#ifndef COVERAGE_PC_CPP
+#define COVERAGE_PC_CPP
 #include <createCubePCL/coverage_pc.h>
 #include <boost/filesystem.hpp>
 #include "dm_colors.hpp"
+#include "utils.hpp"
 #include <fstream>
 
 #define WORLD_FRAME "/world"
 #define PRINT_NN_DATA
 //#define SAVE_COV_DATA
-
-std::vector<int> findNearestPointIndices(Point& searchPoint, pcl::PointCloud<Point>::Ptr& cloud, pcl::KdTreeFLANN<Point>& kdtree, int K);
-void convertPoints(pcl::PointXYZRGB& p, Point& q);
-void colorIt(pcl::PointXYZRGB& p, int color);
-Point transformPoint(Point& p, tf::StampedTransform t);
-tf::StampedTransform getTransform(std::string from_frame, std::string to_frame);
-bool continueLoop();
 
 std::string qd_name;
 std::string gt_name;
@@ -21,8 +17,8 @@ int cutoff_nn;
 double avg_occ;
 
 CoveragePC::CoveragePC():
-gt_cloud(new pcl::PointCloud<Point>),
-qd_cloud(new pcl::PointCloud<Point>),
+gt_cloud(new pcl::PointCloud<PointC>),
+qd_cloud(new pcl::PointCloud<PointC>),
 cov_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
 {
     std::string gt_cloud_topic_name = "/"+gt_name+"/cloud";
@@ -79,8 +75,8 @@ void CoveragePC::findCorrespondences(){
         return;
     }
     //ROS_INFO("Find correspondences between pointclouds");
-    pcl::KdTreeFLANN<Point> kdtree_gt;
-    pcl::KdTreeFLANN<Point> kdtree_qd;
+    pcl::KdTreeFLANN<PointC> kdtree_gt;
+    pcl::KdTreeFLANN<PointC> kdtree_qd;
     kdtree_gt.setInputCloud(gt_cloud);
     kdtree_qd.setInputCloud(qd_cloud);
     std::vector<bool> gt_covered;
@@ -105,9 +101,9 @@ void CoveragePC::findCorrespondences(){
     std::vector<float> distance_array;
     for (size_t i=0; i<qd_cloud->size(); ++i){
         pcl::PointXYZRGB point;
-        Point searchPoint = transformPoint(qd_cloud->points[i], tqg);
+        PointC searchPoint = transformPoint(qd_cloud->points[i], tqg);
         int point_index = findNearestPointIndices(searchPoint, gt_cloud, kdtree_gt, 1)[0];
-        Point resultPoint = gt_cloud->points[point_index];
+        PointC resultPoint = gt_cloud->points[point_index];
         Eigen::Vector4f p1 = Eigen::Vector4f (searchPoint.x, searchPoint.y, searchPoint.z, 0);
         Eigen::Vector4f p2 = Eigen::Vector4f (resultPoint.x, resultPoint.y, resultPoint.z, 0);
         distance = (p1-p2).squaredNorm();
@@ -116,7 +112,7 @@ void CoveragePC::findCorrespondences(){
                 gt_covered[point_index] = true;
                 convertPoints(point, resultPoint);
                 colorIt(point, 0);
-                cov_cloud->points.push_back(transformPoint(point, tgw));
+                //cov_cloud->points.push_back(transformPoint(point, tgw));
                 counter++;
                 cloud_corresp.push_back(mBCL);
         sum_distance += sqrt(distance);
@@ -126,22 +122,22 @@ void CoveragePC::findCorrespondences(){
             convertPoints(point, searchPoint);
             colorIt(point, 0);
             counter++;
-            //cov_cloud->points.push_back(transformPoint(point, tgw));
+            cov_cloud->points.push_back(transformPoint(point, tgw));
             cloud_corresp.push_back(mBCL);
         }else{
             qd_covered.push_back(false);
             convertPoints(point, searchPoint);
             colorIt(point, 2);
             counter++;
-            //cov_cloud->points.push_back(transformPoint(point, tgw));
+            cov_cloud->points.push_back(transformPoint(point, tgw));
             cloud_corresp.push_back(mQCL);
         }
     }
     for (size_t i=0; i<gt_cloud->size(); ++i){
         pcl::PointXYZRGB point;
-        Point searchPoint = transformPoint(gt_cloud->points[i], tgq);
+        PointC searchPoint = transformPoint(gt_cloud->points[i], tgq);
         int rev_index = findNearestPointIndices(searchPoint, qd_cloud, kdtree_qd, 1)[0];
-        Point resultPoint = qd_cloud->points[rev_index];
+        PointC resultPoint = qd_cloud->points[rev_index];
         Eigen::Vector4f p1 = Eigen::Vector4f (searchPoint.x, searchPoint.y, searchPoint.z, 0);
         Eigen::Vector4f p2 = Eigen::Vector4f (resultPoint.x, resultPoint.y, resultPoint.z, 0);
         distance = (p1-p2).squaredNorm();
@@ -157,7 +153,7 @@ void CoveragePC::findCorrespondences(){
                 colorIt(point, 1);
                 cloud_corresp.push_back(mGCL);
             }
-            cov_cloud->points.push_back(transformPoint(point, tqw));
+            //cov_cloud->points.push_back(transformPoint(point, tqw));
             counter++;
         }
     }
@@ -238,11 +234,11 @@ void CoveragePC::estimateCoverage(){
     }
     ROS_INFO("Estimating Coverage of pointclouds");
     ROS_INFO("No. of points are : %d %d %d", gt_cloud->size(), qd_cloud->size(), cov_cloud->size());
-    pcl::KdTreeFLANN<Point> kdtree_cov;
+    pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree_cov;
     kdtree_cov.setInputCloud(cov_cloud);
     std::vector<int> k_indices;
     std::vector<float> k_sqr_distances;
-    Point focusPoint;
+    pcl::PointXYZRGB focusPoint;
     int no_of_points;
     int corr_np[3]={0,0,0};
     for (int i=0; i<3; ++i){
@@ -250,7 +246,7 @@ void CoveragePC::estimateCoverage(){
     }
     std::ofstream area_data;
     area_data.open("test/area_estimate.txt", std::ofstream::out | std::ofstream::app);
-    area_data << sqrt(gt_cloud->size()/1536)-1 << "\n";
+    area_data << sqrt(qd_cloud->size()/1536)-1 << "\n";
     float sum_area[3] = {0,0,0};
     for (size_t i=0; i<cov_cloud->size(); ++i){
         focusPoint = cov_cloud->points[i];
@@ -334,70 +330,6 @@ void CoveragePC::spin(){
     }
 }
 
-bool continueLoop(){
-    char x;
-    std::cout << "Continue? ";
-    std::cin >> x;
-    if (x=='n'){
-        return false;
-    }else{
-        return true;
-    }
-}
-
-std::vector<int> findNearestPointIndices(Point& searchPoint, pcl::PointCloud<Point>::Ptr& cloud,
-        pcl::KdTreeFLANN<Point>& kdtree, int K){
-    std::vector<int> pointIdxNKNSearch(K);
-    std::vector<float> pointNKNSquaredDistance(K);
-    if ( kdtree.nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
-        return pointIdxNKNSearch;
-    }
-    pointIdxNKNSearch.clear();
-    return pointIdxNKNSearch;
-}
-
-void convertPoints(pcl::PointXYZRGB& p, Point& q){
-    p.x = q.x;
-    p.y = q.y;
-    p.z = q.z;
-}
-
-void colorIt(pcl::PointXYZRGB& p, int color){
-    uint8_t r=0,g=0,b=0;
-    switch(color){
-        case 0: r = 255; break;
-        case 1: g = 255; break;
-        case 2: b = 255; break;
-        default : std::cerr<< "  What color?\n";
-    }
-    uint32_t rgb = ((uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b);
-    p.rgb = *reinterpret_cast<float*>(&rgb);
-}
-
-tf::StampedTransform getTransform(std::string from_frame, std::string to_frame){
-    //ROS_INFO("Finding transform from: %s to: %s",from_frame.c_str(), to_frame.c_str());
-    tf::StampedTransform t;
-    tf::TransformListener listener;
-    try {
-        listener.waitForTransform(from_frame, to_frame, ros::Time(0), ros::Duration(10.0));
-        listener.lookupTransform(from_frame, to_frame, ros::Time(0), t);
-    }catch(tf::TransformException ex){
-        ROS_ERROR("%s",ex.what());
-    }
-    return t;
-}
-
-Point transformPoint(Point& p, tf::StampedTransform t){
-    tf::Vector3 p_temp(p.x, p.y, p.z);
-    tf::Vector3 tp = t.inverse() * p_temp;
-    Point q;
-    q.x = tp[0];
-    q.y = tp[1];
-    q.z = tp[2];
-    q.rgb = p.rgb;
-    return q;
-}
-
 int main (int argc, char ** argv){
     ros::init (argc, argv, "coverage_pc");
     gt_name = "cube1";
@@ -410,3 +342,4 @@ int main (int argc, char ** argv){
     test.spin();
     return 0;
 }
+#endif

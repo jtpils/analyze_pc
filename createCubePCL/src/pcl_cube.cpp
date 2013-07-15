@@ -4,9 +4,7 @@
  */
 
 #include <createCubePCL/pcl_cube.h>
-
-pcl::Normal findNormal(pcl::Normal n1, pcl::Normal n2);
-void printQuaternion(Eigen::Quaterniond);
+#include "utils.hpp"
 
 PCLCube::PCLCube(std::string name):
 rng(static_cast<unsigned> (time(0))),
@@ -48,21 +46,6 @@ gaussian_dist(0,1)
 
 void PCLCube::savetoFile(){
     savetoFile("cube_pcl.pcd");
-}
-
-void printQuaternion(Eigen::Quaterniond q){
-    std::cout << "w: " << q.w() << ", x: " << q.x() << ", y: " << q.y() << ", z: " << q.z() << "\n";
-}
-
-pcl::Normal findNormal(pcl::Normal n1, pcl::Normal n2){
-    pcl::Normal n3;
-    Eigen::Vector3d v1(n1.normal[0], n1.normal[1], n1.normal[2]);
-    Eigen::Vector3d v2(n2.normal[0], n2.normal[1], n2.normal[2]);
-    Eigen::Vector3d v3 = v1.cross(v2);
-    n3.normal[0] = v3[0];
-    n3.normal[1] = v3[1];
-    n3.normal[2] = v3[2];
-    return n3;
 }
 
 bool PCLCube::regenerateCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){

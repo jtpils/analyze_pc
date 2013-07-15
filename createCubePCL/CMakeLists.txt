@@ -50,3 +50,4 @@ rosbuild_add_executable(analyze_pc src/analyze_pc.cpp src/dm_colors.hpp include/
 target_link_libraries(analyze_pc ${VTK_LIBRARIES})
 rosbuild_add_executable(coverage_pc src/coverage_pc.cpp include/createCubePCL/coverage_pc.h)
 rosbuild_link_boost(coverage_pc filesystem system)
+rosbuild_add_executable(bridge_sim_process src/bridge_lasersim.cpp)

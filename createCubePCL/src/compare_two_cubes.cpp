@@ -1,8 +1,5 @@
 #include <createCubePCL/pcl_cube.h>
-
-float frand(){
-    return (float)rand()/(float)RAND_MAX;
-}
+#include "utils.hpp"
 
 int main (int argc, char ** argv){
     ros::init (argc, argv, "two_cubes_compare");
