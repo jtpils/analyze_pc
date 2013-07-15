@@ -5,9 +5,9 @@
 #include <pcl/io/pcd_io.h>
 #include "utils.hpp"
 
-#define LASER_FRAME "/laser_frame"
 #define WORLD_FRAME "/world"
 
+std::string laser_frame;
 pcl::PointCloud<pcl::PointXYZ> input_cloud;
 pcl::PointCloud<pcl::PointXYZ> processed_cloud;
 ros::Publisher processed_cloud_pub;
@@ -27,7 +27,7 @@ void processCloud(){
     //std::cerr << input_cloud.header.frame_id << "\n";
     processed_cloud.points.clear();
     tcw = getTransform(input_cloud.header.frame_id, WORLD_FRAME);
-    tcl = getTransform(input_cloud.header.frame_id, LASER_FRAME);
+    tcl = getTransform(input_cloud.header.frame_id, laser_frame);
     pcl::PointXYZ origin(tcl.getOrigin().x(),tcl.getOrigin().y(),tcl.getOrigin().z());
     //std::ofstream dout;
     //dout.open("points.txt",std::ofstream::out);
@@ -61,6 +61,10 @@ int main (int argc, char ** argv){
     ros::NodeHandle nh;
     ros::Subscriber laser_cloud_sub = nh.subscribe("/cloud", 1, &laserCloudCb);
     processed_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/laser/processed_cloud",1);
+    laser_frame = argv[1];
+    if (laser_frame == ""){
+        laser_frame = "/laser_frame";
+    }
     laser_range = 70;
     nh.setParam("/bridge_process/laser_range",laser_range);
     ros::Rate loop_rate(2);
