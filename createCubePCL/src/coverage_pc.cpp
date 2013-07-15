@@ -112,7 +112,7 @@ void CoveragePC::findCorrespondences(){
                 gt_covered[point_index] = true;
                 convertPoints(point, resultPoint);
                 colorIt(point, 0);
-                //cov_cloud->points.push_back(transformPoint(point, tgw));
+                cov_cloud->points.push_back(transformPoint(point, tgw));
                 counter++;
                 cloud_corresp.push_back(mBCL);
         sum_distance += sqrt(distance);
@@ -153,7 +153,7 @@ void CoveragePC::findCorrespondences(){
                 colorIt(point, 1);
                 cloud_corresp.push_back(mGCL);
             }
-            //cov_cloud->points.push_back(transformPoint(point, tqw));
+            cov_cloud->points.push_back(transformPoint(point, tqw));
             counter++;
         }
     }
