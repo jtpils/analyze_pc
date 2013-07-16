@@ -89,23 +89,25 @@ void AnalyzePC::showKeyPoints(bool cache){
         return;
     }
     ROS_INFO("Finding the keypoints");
-    pcl::HarrisKeypoint3D<Point, pcl::PointXYZI, pcl::PointNormal> hkp;
-    pcl::search::KdTree<Point>::Ptr tree(new pcl::search::KdTree<Point>());
+    pcl::HarrisKeypoint3D<Point, pcl::PointXYZI, pcl::PointNormal> hkp_gt;
+    pcl::search::KdTree<Point>::Ptr tree_gt(new pcl::search::KdTree<Point>());
+    pcl::HarrisKeypoint3D<Point, pcl::PointXYZI, pcl::PointNormal> hkp_qd;
+    pcl::search::KdTree<Point>::Ptr tree_qd(new pcl::search::KdTree<Point>());
 
-    hkp.setRadius(harris_radius);
-    hkp.setSearchMethod(tree);
-    hkp.setInputCloud(gt_cloud);
-    hkp.compute(*keypoints_gt);
+    hkp_gt.setRadius(harris_radius);
+    hkp_gt.setSearchMethod(tree_gt);
+    hkp_gt.setInputCloud(gt_cloud);
+    hkp_gt.compute(*keypoints_gt);
     keypoints_gt->header.frame_id=gt_cloud->header.frame_id;
     pcl::toROSMsg(*keypoints_gt, kp_pc);
     kpg_pub.publish(kp_pc);
     pcl::io::savePCDFileASCII ("kp_gt.pcd", *keypoints_gt);
     ROS_INFO("Found GT_CLOUD keypoints :%d", keypoints_gt->points.size());
 
-    hkp.setInputCloud(qd_cloud);
-    hkp.setRadius(harris_radius);
-    hkp.setSearchMethod(tree);
-    hkp.compute(*keypoints_qd);
+    hkp_qd.setRadius(harris_radius);
+    hkp_qd.setSearchMethod(tree_qd);
+    hkp_qd.setInputCloud(qd_cloud);
+    hkp_qd.compute(*keypoints_qd);
     keypoints_qd->header.frame_id=qd_cloud->header.frame_id;
     pcl::toROSMsg(*keypoints_qd, kp_pc);
     kpq_pub.publish(kp_pc);
