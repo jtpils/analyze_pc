@@ -6,6 +6,7 @@
 
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/keypoints/harris_keypoint3D.h>
+#include <pcl/features/fpfh.h>
 
 class AnalyzePC {
   public:
@@ -27,6 +28,8 @@ class AnalyzePC {
     pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
     pcl::PointCloud<pcl::PointXYZI> keypoints_gt;
     pcl::PointCloud<pcl::PointXYZI> keypoints_qd;
+    pcl::PointCloud<pcl::FPFHSignature33> fpfhs_gt;
+    pcl::PointCloud<pcl::FPFHSignature33> fpfhs_qd;
 
     void gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
     void qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
