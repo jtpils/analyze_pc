@@ -193,6 +193,8 @@ void AnalyzePC::estimateFPFHFeatures(){
     fpfh.setSearchMethod(tree);
     fpfh.setRadiusSearch(fpfh_estimation_radius);
     fpfh.compute(fpfhs_gt);
+    fpfhs_gt.width = fpfhs_gt.size();
+    fpfhs_gt.height = 1;
 
     ROS_INFO("Found GT_CLOUD feature histogram :%d",fpfhs_gt.size());
 #ifdef SAVE_FPFH_HISTOGRAMS
@@ -218,6 +220,8 @@ void AnalyzePC::estimateFPFHFeatures(){
     fpfh.setSearchMethod(tree);
     fpfh.setRadiusSearch(fpfh_estimation_radius);
     fpfh.compute(fpfhs_qd);
+    fpfhs_qd.width = fpfhs_qd.size();
+    fpfhs_qd.height = 1;
 
     ROS_INFO("Found QD_CLOUD feature histogram :%d", fpfhs_qd.points.size());
 #ifdef SAVE_FPFH_HISTOGRAMS
