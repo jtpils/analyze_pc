@@ -197,7 +197,7 @@ void AnalyzePC::estimateFPFHFeatures(){
     }
     ROS_INFO("Estimating FPFH Features");
     pcl::search::KdTree<Point>::Ptr tree(new pcl::search::KdTree<Point>());
-    pcl::FPFHEstimation<Point, pcl::Normal, pcl::FPFHSignature33> fpfh;
+    pcl::FPFHEstimationOMP<Point, pcl::Normal, pcl::FPFHSignature33> fpfh;
     pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>());
     pcl::NormalEstimation<Point, pcl::Normal> normal_estimation;
     pcl::IndicesPtr ind(new std::vector<int>);
