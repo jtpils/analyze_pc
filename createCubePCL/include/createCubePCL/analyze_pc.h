@@ -31,6 +31,8 @@ class AnalyzePC {
     pcl::KdTreeFLANN<Point> kdtree;
     pcl::PointCloud<pcl::PointXYZI> keypoints_gt;
     pcl::PointCloud<pcl::PointXYZI> keypoints_qd;
+    std::vector<int> keypoints_gt_indices;
+    std::vector<int> keypoints_qd_indices;
     pcl::PointCloud<pcl::FPFHSignature33> fpfhs_gt;
     pcl::PointCloud<pcl::FPFHSignature33> fpfhs_qd;
     pcl::visualization::PCLHistogramVisualizer hist;

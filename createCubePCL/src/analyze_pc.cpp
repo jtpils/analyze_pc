@@ -15,7 +15,7 @@ std::string qd_name;
 
 AnalyzePC::AnalyzePC():
 gt_cloud(new pcl::PointCloud<Point>),
-qd_cloud(new pcl::PointCloud<Point>)
+qd_cloud(new pcl::PointCloud<Point>),
 {
     std::string gt_cloud_topic_name = "/"+gt_name+"/cloud";
     std::string qd_cloud_topic_name = "/"+qd_name+"/cloud";
@@ -149,18 +149,28 @@ void AnalyzePC::showKeyPoints(){
         return;
     }
     ROS_INFO("Finding the keypoints");
-    //
     pcl::HarrisKeypoint3D<Point, pcl::PointXYZI, pcl::PointNormal> hkp;
     pcl::search::KdTree<Point>::Ptr tree(new pcl::search::KdTree<Point>());
     sensor_msgs::PointCloud2 kp_pc;
     hkp.setRadius(harris_radius);
     hkp.setSearchMethod(tree);
+    int K=1;
+    std::vector<int> pointIdxNKNSearch(K);
+    std::vector<float> pointNKNSquaredDistance(K);
 
     hkp.setInputCloud(gt_cloud);
     hkp.compute(keypoints_gt);
     keypoints_gt.header.frame_id=gt_cloud->header.frame_id;
     pcl::toROSMsg(keypoints_gt, kp_pc);
     kpg_pub.publish(kp_pc);
+    //finding keypoint indices
+    for (size_t i=0; i<keypoints_gt.points.size(); ++i){
+        Point searchPoint = keypoints_gt.points[i];
+        if ( kdtree.nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
+            keypoints_gt_indices.push_back(pointIdxNKNSearch[0]);
+        }
+    }
+
     pcl::io::savePCDFileASCII ("kp_gt.pcd", keypoints_gt);
     ROS_INFO("Found GT_CLOUD keypoints :%d", keypoints_gt.points.size());
 
@@ -169,6 +179,13 @@ void AnalyzePC::showKeyPoints(){
     keypoints_qd.header.frame_id=qd_cloud->header.frame_id;
     pcl::toROSMsg(keypoints_qd, kp_pc);
     kpq_pub.publish(kp_pc);
+    //finding keypoint indices
+    for (size_t i=0; i<keypoints_qd.points.size(); ++i){
+        Point searchPoint = keypoints_qd.points[i];
+        if ( kdtree.nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
+            keypoints_gt_indices.push_back(pointIdxNKNSearch[0]);
+        }
+    }
     pcl::io::savePCDFileASCII ("kp_qd.pcd", keypoints_qd);
     ROS_INFO("Found QD_CLOUD keypoints :%d", keypoints_qd.points.size());
 }
@@ -182,16 +199,14 @@ void AnalyzePC::estimateFPFHFeatures(){
     pcl::FPFHEstimation<Point, pcl::Normal, pcl::FPFHSignature33> fpfh;
     pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>());
     pcl::NormalEstimation<Point, pcl::Normal> normal_estimation;
-    pcl::search::KdTree<Point>::Ptr tree(new pcl::search::KdTree<Point>());
+    pcl::IndicesPtr ind(new std::vector<int>);
 
     normal_estimation.setInputCloud(gt_cloud);
     normal_estimation.setSearchMethod(tree);
     normal_estimation.setRadiusSearch(normal_estimation_radius);
     normal_estimation.compute(*normals);
-    pcl::IndicesPtr ind(new std::vector<int>);
-    ind->push_back(0);
-    ind->push_back(1);
-    ind->push_back(2);
+    ind->clear();
+    ind = *keypoints_gt_indices;
     fpfh.setIndices(ind);
     fpfh.setInputCloud(gt_cloud);
     fpfh.setInputNormals(normals);
@@ -218,6 +233,9 @@ void AnalyzePC::estimateFPFHFeatures(){
     normal_estimation.setSearchMethod(tree);
     normal_estimation.setRadiusSearch(normal_estimation_radius);
     normal_estimation.compute(*normals);
+    ind->clear();
+    ind = *keypoints_qd_indices;
+    fpfh.setIndices(ind);
     fpfh.setInputCloud(qd_cloud);
     fpfh.setInputNormals(normals);
     fpfh.setSearchMethod(tree);
