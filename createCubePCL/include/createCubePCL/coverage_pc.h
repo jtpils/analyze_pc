@@ -2,11 +2,11 @@
 #define COVERAGE_PC_H
 #include <ros/ros.h>
 #include <ros/package.h>
+#include <std_srvs/Empty.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl/kdtree/kdtree_flann.h>
-/*
-#include <std_srvs/Empty.h>
 #include <tf/transform_listener.h>
+/*
 #include <visualization_msgs/Marker.h>
 #include <pcl/keypoints/harris_keypoint3D.h>
 #include <pcl/features/fpfh.h>
@@ -16,7 +16,7 @@
 #include <pcl/registration/icp.h>
 #include <pcl/io/pcd_io.h>
 */
-typedef pcl::PointXYZ Point;
+typedef pcl::PointXYZRGB Point;
 
 class CoveragePC {
   public:
@@ -28,6 +28,7 @@ class CoveragePC {
     ros::Publisher coverage_cloud_pub;
     ros::Subscriber gt_cloud_sub;
     ros::Subscriber qd_cloud_sub;
+    ros::ServiceServer set_parameters_server;
 
     pcl::PointCloud<Point>::Ptr gt_cloud;
     pcl::PointCloud<Point>::Ptr qd_cloud;
@@ -35,8 +36,9 @@ class CoveragePC {
 
     void gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
     void qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
+    bool setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
     void findCorrespondences();
 
-    float max_correspondence_distance;
+    double max_correspondence_distance;
 };
 #endif
