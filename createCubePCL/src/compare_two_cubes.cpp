@@ -6,6 +6,7 @@ float frand(){
 
 int main (int argc, char ** argv){
     ros::init (argc, argv, "two_cubes_compare");
+    ros::NodeHandle nh;
     RandomGen rng(static_cast<unsigned> (time(0)));
     NormalDist gaussian_dist(0,1);
     GaussianGen generator(rng,gaussian_dist);
@@ -20,7 +21,7 @@ int main (int argc, char ** argv){
     c1->addNoise(generator);
     //float occlusion_fraction[6] = {0.5,0,0,0,0,0.5};
     float occlusion_fraction[6];
-    float avg_occ=0.0;
+    double avg_occ=0.0;
     std::cerr << "Occlusion Fractions: ";
     for (int i=0; i<6; ++i){
         occlusion_fraction[i] = frand();
@@ -28,6 +29,7 @@ int main (int argc, char ** argv){
         avg_occ += occlusion_fraction[i];
     }
     avg_occ = avg_occ/6;
+    nh.setParam("/compare_two_cubes/avg_occ", avg_occ);
     std::cerr << "\n";
     std::cerr << "Total occluded fraction : " << avg_occ << "\n";
     c2->setOcclusion(occlusion_fraction); // GT cube is occluded

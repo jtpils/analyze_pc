@@ -6,7 +6,7 @@ graphs=[]
 #Graphs=[B,G,Q]
 # B = [means, stdvs]
 
-for i in range(6):
+for i in range(4):
     graphs.append([])
 data = open("fraction_data.txt","r")
 while True:
@@ -24,9 +24,13 @@ for x in  graphs:
     print x
 gn=[0,3,1,4,2,5]
 count = 0
-for x in graphs:
-    plt.subplot(2,3,gn[count]+1)
-    plt.plot(mcd_array, x)
+font = {'family' : 'normal',
+        'weight' : 'bold',
+        'size'   : 20}
+plt.rc('font', **font)
+for i in range(3):
+    plt.subplot(1,3,count+1)
+    plt.scatter(graphs[0], graphs[i+1])
     plt.title("Plot: "+str(count))
     count+=1
 plt.show()
