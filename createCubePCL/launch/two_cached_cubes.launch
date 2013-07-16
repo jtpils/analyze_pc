@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+
+<launch>
+      <rosparam file="$(find createCubePCL)/cube_params.yaml" command="load"/>
+      <node pkg="tf" type="static_transform_publisher" name="world_to_laser1"  args="0 1 0 0 0 0 /world /laser_cube1 100" />
+      <node pkg="tf" type="static_transform_publisher" name="world_to_laser2"  args="1 0 0 0 0 0 /world /laser_cube2 100" />
+
+      <node pkg="pcl_ros" name="cube1_pub_node" type="pcd_to_pointcloud" args="$(find createCubePCL)/cache/cubes_pcd/cube1.pcd 0.1">
+        <remap from="cloud_pcd" to="/cube1/cloud"/>
+        <param name="frame_id" value="laser_cube1"/>
+      </node>
+      <node pkg="pcl_ros" name="cube2_pub_node" type="pcd_to_pointcloud" args="$(find createCubePCL)/cache/cubes_pcd/cube2.pcd 0.1">
+        <remap from="cloud_pcd" to="/cube2/cloud"/>
+        <param name="frame_id" value="laser_cube2"/>
+      </node>
+      <!--
+      <node pkg="tf" type="static_transform_publisher" name="isam_to_imu" args="0 0 0 0 0 0 /cube_cloud /world 100" />
+      -->
+      <!--      <node pkg="rviz" name="rviz" type="rviz" args="-d $(find createCubePCL)/rviz/two_cubes.vcg" />-->
+
+</launch>

@@ -5,6 +5,7 @@
 
 #define WORLD_FRAME "/world"
 //#define PRINT_NN_DATA
+#define SAVE_COV_DATA
 
 std::vector<int> findNearestPointIndices(Point& searchPoint, pcl::PointCloud<Point>::Ptr& cloud, pcl::KdTreeFLANN<Point>& kdtree, int K);
 void convertPoints(pcl::PointXYZRGB& p, Point& q);
@@ -36,6 +37,9 @@ cov_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
     test_number = 0;
     nh.setParam("/coverage_pc/test_number", test_number);
     data_generated = false;
+#ifdef SAVE_COV_DATA
+    data_generated = true;
+#endif
 #ifdef PRINT_NN_DATA
     data_generated = true;
 #endif
@@ -55,6 +59,9 @@ bool CoveragePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Resp
     nh.getParam("/coverage_pc/min_nn_factor", min_nn_factor);
     nh.getParam("/coverage_pc/test_number", test_number);
 #ifdef PRINT_NN_DATA
+    data_generated = false;
+#endif
+#ifdef SAVE_COV_DATA
     data_generated = false;
 #endif
     return true;
@@ -165,9 +172,12 @@ float CoveragePC::areaFunction(int n){
 // For each point, find the local density and give area corresponding to it
 // to it
 void CoveragePC::estimateCoverage(){
+#ifdef SAVE_COV_DATA
     std::ofstream resout;
-    resout.open("res_data.txt", std::ofstream::out | std::ofstream::app);
+    boost::filesystem::create_directories("./res/");
+    resout.open("res/res_data.txt", std::ofstream::out | std::ofstream::app);
     resout << min_nn_factor << " " << min_nn << "\n";
+#endif
 #ifdef PRINT_NN_DATA
     std::ofstream fout[3];
     boost::filesystem::create_directories("./dist/"+boost::to_string(test_number)+"/");
@@ -202,27 +212,39 @@ void CoveragePC::estimateCoverage(){
         fout[cloud_corresp[i]] << no_of_points << "\n";
 #endif
     }
+#ifdef SAVE_COV_DATA
     for (int i=0; i<3; ++i){
         resout << corr_np[i] << " ";
     }
     resout << "\n";
+#endif
     float sum_fractions=0.0;
     std::cerr << "fractions : ";
     for (int i=0; i<3; ++i){
         sum_fractions+=cloud_fractions[i];
         std::cerr << cloud_fractions[i] << " ";
+#ifdef SAVE_COV_DATA
         resout << cloud_fractions[i] << " ";
+#endif
     }
     std::cerr << "sum of fractions is :" << sum_fractions << "\n";
     std::cerr << "Fractions of cloud in Both, GC and QC :";
+#ifdef SAVE_COV_DATA
     resout << "\n";
+#endif
     for (int i=0; i<3; ++i){
         cloud_fractions[i] = cloud_fractions[i]/sum_fractions;
         std::cerr << cloud_fractions[i] << " ";
+#ifdef SAVE_COV_DATA
         resout << cloud_fractions[i] << " ";
+#endif
     }
     std::cerr<<"\n";
+#ifdef SAVE_COV_DATA
     resout << "\n";
+    resout.close();
+    data_generated = true;
+#endif
 #ifdef PRINT_NN_DATA
     for (int i=0; i<3; ++i){
         fout[i].close();
