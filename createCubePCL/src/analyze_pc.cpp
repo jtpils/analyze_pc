@@ -256,9 +256,6 @@ void AnalyzePC::applySACIA(){
     }
     ROS_INFO("Applying SAC-IA algorithm on the harris keypoint clouds using fpfh features");
     pcl::PointCloud<Point> ransaced_source;
-    Eigen::Matrix4f transformation;
-    float fitness_score;
-
     sac_ia.setMinSampleDistance(min_sample_distance);
     sac_ia.setMaxCorrespondenceDistance(max_correspondence_distance);
     sac_ia.setMaximumIterations(nr_iterations);
@@ -267,13 +264,16 @@ void AnalyzePC::applySACIA(){
     sac_ia.setSourceFeatures(fpfhs_qd);
     sac_ia.setInputTarget(toPointXYZ(keypoints_gt));
     sac_ia.setTargetFeatures(fpfhs_gt);
-    sac_ia.align(ransaced_source, transformation);
+    sac_ia.align(ransaced_source, transformation_q_g);
     fitness_score = sac_ia.getFitnessScore(max_correspondence_distance);
     ROS_INFO("Pointclouds aligned, fitness score is :%f", fitness_score);
 
+    ransaced_source.width = ransaced_source.size();
+    ransaced_source.height = 1;
     pcl::io::savePCDFileASCII("registered_qd_cloud.pcd", ransaced_source);
     sensor_msgs::PointCloud2 pc;
     pcl::toROSMsg(ransaced_source, pc);
+    pc.header.frame_id = qd_cloud->header.frame_id;
     ransaced_cloud_pub.publish(pc);
 }
 
