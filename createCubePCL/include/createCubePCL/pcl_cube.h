@@ -39,6 +39,8 @@ class PCLCube{
     void addNoise(GaussianGen&);
     void addNoiseToCenter();
     void addNoiseToCenter(GaussianGen&);
+    void addNoiseToOrientation();
+    void addNoiseToOrientation(GaussianGen&);
 
   private:
     void generatePlanePoints(pcl::PointNormal, int); // given a face center, generate points in that plane

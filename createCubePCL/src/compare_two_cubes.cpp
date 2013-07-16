@@ -8,6 +8,7 @@ int main (int argc, char ** argv){
     PCLCube* c1 = new PCLCube("cube1");
     PCLCube* c2 = new PCLCube("cube2");
     c1->addNoiseToCenter(generator);
+    //c1->addNoiseToOrientation(generator);
     c1->addNoise(generator);
     //c2->addNoise(generator);
     //c1->changeCenterTo(pcl::PointXYZ(0,4,0));
