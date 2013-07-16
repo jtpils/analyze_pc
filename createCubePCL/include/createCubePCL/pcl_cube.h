@@ -22,6 +22,7 @@ class PCLCube{
     void savetoFile(); //saves the cube point cloud to pcd file
     void savetoFile(std::string filename);
     void colorIt(uint8_t, uint8_t, uint8_t);
+    void changeCenterTo(pcl::PointXYZ);
     void publishPointCloud(); // publishes the pcl point cloud after converting to sensor_msgs::PointCloud2
 
   private:
