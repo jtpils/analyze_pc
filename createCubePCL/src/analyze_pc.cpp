@@ -194,6 +194,86 @@ void AnalyzePC::estimateFPFHFeatures(bool cache){
     found_fh = true;
 }
 
+void AnalyzePC::applyICP(){
+    pcl::PointCloud<Point> ransaced_source;
+    pcl::KdTreeFLANN<Point> kdtree;
+    sensor_msgs::PointCloud2 pc;
+    float fitness_score;
+    float min_error = FLT_MAX;
+    float max_error = 0.0;
+    float error = 0.0;
+    pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+    icp.setInputCloud(qd_cloud);
+    icp.setInputTarget(gt_cloud);
+    ROS_INFO("");
+    ROS_INFO("Applying ICP to get a finer transformation");
+
+    //icp.setMaxCorrespondenceDistance(max_correspondence_distance);
+    icp.setMaximumIterations(nr_iterations);
+    icp.setTransformationEpsilon(1e-10);
+    icp.setEuclideanFitnessEpsilon(0.000001);
+
+    icp.align(*transformed_qd_cloud, transformation_q_g);
+
+    transformation_q_g = icp.getFinalTransformation();
+    fitness_score = icp.getFitnessScore();
+    ROS_INFO("Pointclouds aligned, fitness score (after ICP) is :%f", fitness_score);
+
+    fitness_score = 0.0;
+    error = 0.0;
+    pcl::transformPointCloud(*(toPointXYZ(keypoints_qd)), ransaced_source, transformation_q_g);
+    pcl::PointCloud<Point>::Ptr kp_gt_cl = toPointXYZ(keypoints_gt);
+    kdtree.setInputCloud(kp_gt_cl);
+    ransaced_source.width = ransaced_source.size();
+    ransaced_source.height = 1;
+    for (size_t i=0; i < ransaced_source.width; ++i){
+        Point searchPoint = ransaced_source.points[i];
+        int point_index = findNearestPointIndices(searchPoint, kp_gt_cl, kdtree, 1)[0];
+        for (int j=0; j<33; ++j){
+            float diff = fpfhs_gt->points[point_index].histogram[j]-fpfhs_qd->points[i].histogram[j];
+            error += diff*diff;
+        }
+    }
+    ROS_INFO("Keypoint Fitness Match (Euclidean) is %f",error/ransaced_source.size());
+    fitness_score = 0.0;
+    error = 0.0;
+    kdtree.setInputCloud(gt_cloud);
+    for (size_t i=0; i<transformed_qd_cloud->width; ++i){
+        Point searchPoint = transformed_qd_cloud->points[i];
+        int point_index = findNearestPointIndices(searchPoint, gt_cloud, kdtree, 1)[0];
+        Point resultPoint = gt_cloud->points[point_index];
+        Eigen::Vector4f p1 = Eigen::Vector4f (searchPoint.x, searchPoint.y, searchPoint.z, 0);
+        Eigen::Vector4f p2 = Eigen::Vector4f (resultPoint.x, resultPoint.y, resultPoint.z, 0);
+        error = (p1-p2).squaredNorm();
+        if (sqrt(error) < max_correspondence_distance){
+            error = error/2.0;
+        }else{
+            error = max_correspondence_distance*(sqrt(error)-max_correspondence_distance/2.0);
+        }
+        if (error > max_error){
+            max_error = error;
+        }
+        if (error < min_error){
+            min_error = error;
+        }
+        fitness_score += fabs(error);
+    }
+    float avg_error = fitness_score/transformed_qd_cloud->width;
+    ROS_INFO("Average error (huber fitness score) is %f",avg_error);
+    if (avg_error <= min_fitness_score){
+        pcl::io::savePCDFileASCII("registered_kp_"+gt_name+"_"+qd_name+".pcd", ransaced_source);
+        pcl::toROSMsg(ransaced_source, pc);
+        pc.header.frame_id = qd_cloud->header.frame_id;
+        registered_kp_pub.publish(pc);
+
+        pcl::io::savePCDFileASCII("registered_cloud_"+gt_name+"_"+qd_name+".pcd", *transformed_qd_cloud);
+        pcl::toROSMsg(*transformed_qd_cloud, pc);
+        pc.header.frame_id = gt_cloud->header.frame_id;
+        registered_cloud_pub.publish(pc);
+        min_fitness_score = avg_error;
+    }
+}
+
 void AnalyzePC::applySACIA(){
     if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
         ROS_ERROR("Not yet received point clouds");
@@ -217,7 +297,7 @@ void AnalyzePC::applySACIA(){
     sac_ia.setInputTarget(toPointXYZ(keypoints_gt));
     sac_ia.setTargetFeatures(fpfhs_gt);
     int count = 0;
-    int max_count = 10;
+    int max_count = 15;
     while (x!='n' and count<max_count){
         sac_ia.align(ransaced_source);
         fitness_score = sac_ia.getFitnessScore(max_correspondence_distance);
@@ -276,7 +356,8 @@ void AnalyzePC::applySACIA(){
             registered_cloud_pub.publish(pc);
             min_fitness_score = avg_error;
             std::cout << "Continue? :";
-            std::cin >> x;
+            x='y';
+            //std::cin >> x;
             count = 0;
         }else{
             x='y';
@@ -449,6 +530,7 @@ pcl::PointCloud<Point>::Ptr AnalyzePC::getCloud(std::string base_name){
     std::string package_path = ros::package::getPath("createCubePCL");
     pcl::PointCloud<Point>::Ptr cloud(new pcl::PointCloud<Point>);
     pcl::io::loadPCDFile(package_path+"/data/"+base_name+"_UnStructured.pcd", *cloud);
+    cloud->header.frame_id = "laser_"+base_name;
     return cloud;
 }
 
@@ -466,6 +548,11 @@ void AnalyzePC::spin(){
         showKeyPoints(true);
         estimateFPFHFeatures(true);
         applySACIA();
+        applyICP();
+        char x;
+        std::cout << "Continue?";
+        std::cin >> x;
+
         /*
         if (found_kp and found_fh and pair_number+3<10){
             pair_number+=1;
