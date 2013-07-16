@@ -10,7 +10,8 @@
 void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t);
 void transformFromTo(Point& p, tf::StampedTransform t);
 tf::StampedTransform getTransform(std::string from_frame, std::string to_frame);
-std::vector<int> findNearestPointIndices(Point searchPoint, pcl::PointCloud<Point>::Ptr cloud, int K=1);
+std::vector<int> findNearestPointIndices(Point& searchPoint, pcl::PointCloud<Point>::Ptr& cloud, pcl::KdTreeFLANN<Point>& kdtree, int K);
+
 pcl::PointCloud<pcl::PointXYZ>::Ptr toPointXYZ(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud);
 
 std::string gt_name;
@@ -102,6 +103,8 @@ void AnalyzePC::visualizeError(){
 
     pcl::transformPointCloud(*qd_cloud, *transformed_qd_cloud, transformation_q_g);
 
+    pcl::KdTreeFLANN<Point> kdtree;
+    kdtree.setInputCloud(gt_cloud);
     for (size_t i=0; i<transformed_qd_cloud->width; ++i){
         geometry_msgs::Point p;
         geometry_msgs::Point q;
@@ -111,7 +114,7 @@ void AnalyzePC::visualizeError(){
         p.z = searchPoint.z;
         marker.points.push_back(p);
         // Not assuming exact correspondence
-        int point_index = findNearestPointIndices(searchPoint, gt_cloud, 1)[0];
+        int point_index = findNearestPointIndices(searchPoint, gt_cloud, kdtree, 1)[0];
         q.x = gt_cloud->points[point_index].x;
         q.y = gt_cloud->points[point_index].y;
         q.z = gt_cloud->points[point_index].z;
@@ -346,10 +349,8 @@ void transformFromTo(Point& p, tf::StampedTransform t){
     p.z = p.z - origin.z();
 }
 
-std::vector<int> findNearestPointIndices(Point searchPoint, pcl::PointCloud<Point>::Ptr cloud,
-        int K){
-    pcl::KdTreeFLANN<Point> kdtree;
-    kdtree.setInputCloud(cloud);
+std::vector<int> findNearestPointIndices(Point& searchPoint, pcl::PointCloud<Point>::Ptr& cloud,
+        pcl::KdTreeFLANN<Point>& kdtree, int K){
     std::vector<int> pointIdxNKNSearch(K);
     std::vector<float> pointNKNSquaredDistance(K);
     if ( kdtree.nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
@@ -380,7 +381,7 @@ void AnalyzePC::spin(){
         showKeyPoints(true); //Using cached pointclouds
         estimateFPFHFeatures(true);
         applySACIA();
-        //visualizeError();
+        visualizeError();
 #ifdef VIEW_FPFH_HISTOGRAMS
         hist.spinOnce(10);
 #endif
