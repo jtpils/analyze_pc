@@ -1,4 +1,5 @@
 #include <createCubePCL/coverage_pc.h>
+#include <boost/filesystem.hpp>
 #include "dm_colors.hpp"
 #include <fstream>
 
@@ -159,6 +160,7 @@ float CoveragePC::areaFunction(int n){
 // to it
 void CoveragePC::estimateCoverage(){
     std::ofstream fout[3];
+    boost::filesystem::create_directories("./dist/"+boost::to_string(test_number)+"/");
     for (int i=0; i<3; ++i){
         fout[i].open(("dist/"+boost::to_string(test_number)+"/"+boost::to_string(i)+"_data.txt").c_str(), std::ofstream::out);
     }

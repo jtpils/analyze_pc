@@ -4,18 +4,23 @@ import matplotlib.pyplot as plt
 import roslib
 import rospy
 from std_srvs.srv import *
-import os
+import os,sys
 import time
 
 mcd_array=[0.01*i for i in range(1,11)]
 mcd_array.append(0.2)
 set_param_call = rospy.ServiceProxy('/coverage_pc/set_parameters', Empty)
-for tn in range(len(mcd_array)):
+if len(sys.argv)>1:
+    start = int(sys.argv[1])
+else:
+    start = 0
+for tn in range(start,len(mcd_array)):
     max_correspondence_distance = mcd_array[tn]
     rospy.set_param("/coverage_pc/max_correspondence_distance", max_correspondence_distance)
     rospy.set_param("/coverage_pc/test_number", tn)
     set_param_call()
-    time.sleep(1)
+    print "Test case :",tn,"MCD =",max_correspondence_distance
+    time.sleep(3)
     sample=tn
     fin=[]
     data = []
@@ -38,10 +43,12 @@ for tn in range(len(mcd_array)):
                 fin.append(x)
                 got = True
             except(IOError):
+                print "IOError:",str(sample)+"/"+str(i)+"_data.txt"
                 time.sleep(1)
         data.append(map(int,fin[i].read().split()))
         #Now drawing a histogram of the data
-        plt.hist(data[i],bins=max(1,max(data[i])-min(data[i])))
+        #print len(data[i])," "
+        plt.hist(data[i],bins=max([1,max(data[i])-min(data[i])]))
         #plt.title("Histogram of NN :"+titles[i])
         plt.title("HNN :"+titles[i])
         plt.xlabel("Value")
@@ -53,7 +60,7 @@ for tn in range(len(mcd_array)):
         for x in data[i]:
             sq_diff += (x-mean)**2
         var = sq_diff/len(data[i])
-        print titles[i], ":Mean", mean , ":Std dev", var**0.5
+        #print titles[i], ":Mean", mean , ":Std dev", var**0.5
         data_out.write(str(mean)+" "+str(var**0.5)+"\n")
     plt.suptitle("With MCD :"+str(max_correspondence_distance))
     mypath = "./hist/"
@@ -62,5 +69,6 @@ for tn in range(len(mcd_array)):
     figure = plt.gcf() # get current figure
     figure.set_size_inches(16, 8)
     plt.savefig("hist/"+str(tn)+"_plot.png", bbox_inches=0, dpi=100)
+    plt.clf()
     data_out.close()
 print "Ending program"
