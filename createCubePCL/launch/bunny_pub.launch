@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+
+<launch>
+    <!--
+    <node pkg="tf" type="static_transform_publisher" name="world_to_laser1"  args="0 1 0 0 0 0 /world /laser_cube1 100" />
+    <node pkg="tf" type="static_transform_publisher" name="world_to_laser2"  args="1 0 0 0 0 0 /world /laser_cube2 100" />
+    -->
+
+    <node pkg="pcl_ros" type="pcd_to_pointcloud" name="bunny000_node" args="$(find createCubePCL)/data/bun000_UnStructured.pcd" output="screen">
+        <remap from="cloud_pcd" to="/bunny000/cloud"/>
+        <param name="frame_id" value="laser_bunny000"/>
+    </node>
+    <node pkg="pcl_ros" type="pcd_to_pointcloud" name="bunny090_node" args="$(find createCubePCL)/data/bun090_UnStructured.pcd" output="screen">
+        <remap from="cloud_pcd" to="/bunny090/cloud"/>
+        <param name="frame_id" value="/laser_bunny090"/>
+    </node>
+
+</launch>
