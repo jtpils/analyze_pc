@@ -12,8 +12,8 @@ class AnalyzePC {
     ros::Publisher vis_pub;
     ros::Subscriber gt_cloud_sub;
     ros::Subscriber qd_cloud_sub;
-    pcl::PointCloud<pcl::PointXYZRGB> gt_cloud;
-    pcl::PointCloud<pcl::PointXYZRGB> qd_cloud;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr gt_cloud;
+    pcl::PointCloud<pcl::PointXYZRGB>::Ptr qd_cloud;
 
     pcl::KdTreeFLANN<pcl::PointXYZRGB> kdtree;
 
