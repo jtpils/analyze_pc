@@ -21,13 +21,19 @@ Bridges require a biennial inspection and the present state of inspection involv
 \section{Error Analysis of Point Clouds}
     In this section we shall go through techniques of analyzing error metrics between two given point clouds.
     The error metric would be a function of the distances between corresponding points.
+
     \subsection{Basic approach to error metric}
     Assuming two point clouds are already registered (maybe through external sensor data, say odometry or GPS for example), we would like to define the error metric between two point clouds as the \emph{average euclidean distance} between the corresponding points.
     If we have clouds named \textbf{G}(round) and \textbf{Q}(uadrotor), and $P_{G}^{i}$ is a point corresponding to point $P_Q^i$ for all points $i=1...N_Q$ in the cloud Q then the basic error metric is given by the following equation :
-    $$ e_{basic} = \frac{1}{N_Q} \sum (P_Q^{i}-P_G^i).Norm()$$
-    The corresponding point $P_G^i$ can be estimated as the nearest neighbour point in the cloud G for the point $P_Q^i$.
+    $$ e_{basic} = \frac{1}{N_Q} \sum_{i} (P_Q^{i}-P_G^i).Norm()$$
+    The corresponding point $P_G^i$ can be estimated as the nearest neighbor point in the cloud G for the point $P_Q^i$.
+
+    \subsection{Realistic case : Unknown Point Clouds}
+    Now we consider the more realistic case of point clouds with unknown transformation between them.
+    We try to 'register' the point cloud using the data we can interpret from the points only.
+    In practice though, external sensor data can be used in conjunction with the interpretations from just the point clouds to fasten or improve the registration.
 
 \section{Coverage Analysis of Point Clouds}
-
+    \subsection{}
 \end{document}
 
