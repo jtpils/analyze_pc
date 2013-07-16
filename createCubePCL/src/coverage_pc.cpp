@@ -151,8 +151,8 @@ void CoveragePC::findCorrespondences(){
                 gt_covered[i] = true;
                 colorIt(point, 0);
                 cloud_corresp.push_back(mBCL);
-        sum_distance += sqrt(distance);
-        distance_array.push_back(sqrt(distance));
+                sum_distance += sqrt(distance);
+                distance_array.push_back(sqrt(distance));
             }else{
                 colorIt(point, 1);
                 cloud_corresp.push_back(mGCL);
@@ -180,15 +180,24 @@ void CoveragePC::findCorrespondences(){
     ROS_INFO("Variance of distance from nearest neighbor is : %f", vd);
 }
 
-float CoveragePC::areaFunction(int n){
+float CoveragePC::areaFunction(int n, int function){
     float K = min_nn_factor*min_nn_factor*min_nn*min_nn*min_nn*(1-min_nn_factor);
-    if (n < min_nn_factor*min_nn){
-        return n*(min_nn-n)/K;
-    //if (n < cutoff_nn){
-     //   return 0;
-        //return 1.0/(float)n;
-    }else{
-        return 1.0/(float)n;
+    switch (function){
+        case 0: return 1.0/(float)n; break;
+        case 1:
+            if(n<cutoff_nn){
+                return 0;
+            }else{
+                return 1.0/(float)n;
+            }
+            break;
+        case 2:
+            if (n < min_nn_factor*min_nn){
+                return n*(min_nn-n)/K;
+            }else{
+                return 1.0/(float)n;
+            }
+            break;
     }
 }
 
@@ -239,17 +248,26 @@ void CoveragePC::estimateCoverage(){
     for (int i=0; i<3; ++i){
         cloud_fractions[i] = 0;
     }
+    float sum_area[3] = {0,0,0};
     for (size_t i=0; i<cov_cloud->size(); ++i){
         focusPoint = cov_cloud->points[i];
         no_of_points = kdtree_cov.radiusSearch(focusPoint, max_correspondence_distance, k_indices, k_sqr_distances);
         if (no_of_points>0){
             cloud_fractions[(int)cloud_corresp[i]] += areaFunction(no_of_points);
+            for (int j=0; j<3; ++j){
+                sum_area[j]+=areaFunction(no_of_points, j);
+            }
         }
         corr_np[(int)cloud_corresp[i]]++;
 #ifdef PRINT_NN_DATA
         fout[cloud_corresp[i]] << no_of_points << "\n";
 #endif
     }
+    std::cerr << "Area estimates : ";
+    for (int i=0; i<3; ++i){
+        std::cerr << sum_area[i] << " ";
+    }
+    std::cerr << "\n";
 #ifdef SAVE_COV_DATA
     for (int i=0; i<3; ++i){
         resout << corr_np[i] << " ";
