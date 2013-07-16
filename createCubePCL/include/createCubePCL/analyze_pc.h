@@ -42,7 +42,6 @@ class AnalyzePC {
     void visualizeError();
     void showKeyPoints();
     void estimateFPFHFeatures();
-    void transformFromTo(Point& p, tf::StampedTransform t);
 
     double harris_radius;
     double normal_estimation_radius;

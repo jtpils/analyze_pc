@@ -8,6 +8,7 @@
 #define SAVE_FPFH_HISTOGRAMS
 
 void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t);
+void transformFromTo(Point& p, tf::StampedTransform t);
 tf::StampedTransform getTransform(std::string from_frame, std::string to_frame);
 std::vector<int> findNearestPointIndices(Point searchPoint, pcl::PointCloud<Point>::Ptr cloud, int K=1);
 
@@ -88,13 +89,17 @@ void AnalyzePC::visualizeError(){
             p.x = qd_cloud->points[i].x;
             p.y = qd_cloud->points[i].y;
             p.z = qd_cloud->points[i].z;
-            ::transformFromTo(p,tqw);
+            transformFromTo(p,tqw);
             marker.points.push_back(p);
             geometry_msgs::Point q;
             Point searchPoint = qd_cloud->points[i];
             transformFromTo(searchPoint, tqg);
-            ::transformFromTo(q,tgw);
             // Not assuming exact correspondence
+            int point_index = findNearestPointIndices(searchPoint, qd_cloud, 1)[0];
+            q.x = gt_cloud->points[point_index].x;
+            q.y = gt_cloud->points[point_index].y;
+            q.z = gt_cloud->points[point_index].z;
+            transformFromTo(q,tgw);
 #ifdef CORRESPONDENCE_ONLY
             q.x = gt_cloud->points[i].x;
             q.y = gt_cloud->points[i].y;
@@ -156,17 +161,13 @@ void AnalyzePC::showKeyPoints(){
     pcl::toROSMsg(keypoints_gt, kp_pc);
     kpg_pub.publish(kp_pc);
     //finding keypoint indices
-    /*
     for (size_t i=0; i<keypoints_gt.points.size(); ++i){
         Point searchPoint;
         searchPoint.x = keypoints_gt.points[i].x;
         searchPoint.y = keypoints_gt.points[i].y;
         searchPoint.z = keypoints_gt.points[i].z;
-        if ( kdtree.nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
-            keypoints_gt_indices.push_back(pointIdxNKNSearch[0]);
-        }
+        keypoints_gt_indices.push_back(findNearestPointIndices(searchPoint, gt_cloud, 1)[0]);
     }
-    */
     pcl::io::savePCDFileASCII ("kp_gt.pcd", keypoints_gt);
     ROS_INFO("Found GT_CLOUD keypoints :%d", keypoints_gt.points.size());
 
@@ -176,14 +177,13 @@ void AnalyzePC::showKeyPoints(){
     pcl::toROSMsg(keypoints_qd, kp_pc);
     kpq_pub.publish(kp_pc);
     //finding keypoint indices
-    /*
     for (size_t i=0; i<keypoints_qd.points.size(); ++i){
-        Point searchPoint = keypoints_qd.points[i];
-        if ( kdtree.nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
-            keypoints_gt_indices.push_back(pointIdxNKNSearch[0]);
-        }
+        Point searchPoint;
+        searchPoint.x = keypoints_gt.points[i].x;
+        searchPoint.y = keypoints_gt.points[i].y;
+        searchPoint.z = keypoints_gt.points[i].z;
+        keypoints_gt_indices.push_back(findNearestPointIndices(searchPoint, gt_cloud, 1)[0]);
     }
-    */
     pcl::io::savePCDFileASCII ("kp_qd.pcd", keypoints_qd);
     ROS_INFO("Found QD_CLOUD keypoints :%d", keypoints_qd.points.size());
 }
@@ -214,7 +214,7 @@ void AnalyzePC::estimateFPFHFeatures(){
     fpfh.compute(fpfhs_gt);
 
 
-    ROS_INFO("Found GT_CLOUD feature histogram %d",fpfhs_gt.size());
+    ROS_INFO("Found GT_CLOUD feature histogram :%d",fpfhs_gt.size());
 #ifdef SAVE_FPFH_HISTOGRAMS
     pcl::io::savePCDFileASCII ("fpfhs_gt.pcd", fpfhs_gt);
 #endif
@@ -241,7 +241,7 @@ void AnalyzePC::estimateFPFHFeatures(){
     fpfh.setRadiusSearch(fpfh_estimation_radius);
     fpfh.compute(fpfhs_qd);
 
-    ROS_INFO("Found QD_CLOUD feature histogram");
+    ROS_INFO("Found QD_CLOUD feature histogram :%d", fpfhs_qd.points.size());
 #ifdef SAVE_FPFH_HISTOGRAMS
         pcl::io::savePCDFileASCII ("fpfhs_qd.pcd", fpfhs_qd);
 #endif
@@ -283,7 +283,7 @@ void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t){
     //Translation done : Now rotation
 }
 
-void AnalyzePC::transformFromTo(Point& p, tf::StampedTransform t){
+void transformFromTo(Point& p, tf::StampedTransform t){
     tf::Vector3 origin = t.getOrigin();
     p.x = p.x - origin.x();
     p.y = p.y - origin.y();
@@ -309,7 +309,7 @@ void AnalyzePC::spin(){
         ros::spinOnce();
         //visualizeError();
         showKeyPoints();
-        //estimateFPFHFeatures();
+        estimateFPFHFeatures();
 #ifdef VIEW_FPFH_HISTOGRAMS
         hist.spinOnce(10);
 #endif
