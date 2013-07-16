@@ -4,14 +4,16 @@
  */
 
 #include <createCubePCL/pcl_cube.h>
+pcl::Normal findNormal(pcl::Normal n1, pcl::Normal n2);
 
 PCLCube::PCLCube(){
     cube_center.x = 0;
     cube_center.y = 0;
     cube_center.z = 0;
-    cube_axes[0] = pcl::Normal(0,0,1); //The Z-axis
-    cube_axes[1] = pcl::Normal(0,1,0); //The Y-axis
-    std::cerr << cube_axes[0] << cube_axes[1] << "\n";
+    cube_axes[0] = pcl::Normal(0,1,0); //The Y-axis
+    cube_axes[1] = pcl::Normal(0,0,1); //The Z-axis
+    cube_axes[2] = findNormal(cube_axes[0],cube_axes[1]);
+    //std::cerr << cube_axes[0] << cube_axes[1] << cube_axes[2] << "\n";
 
     dense = false;
     scale = 1.0;
@@ -21,9 +23,24 @@ void PCLCube::savetoFile(){
     savetoFile("cube_pcl.pcd");
 }
 
+pcl::Normal findNormal(pcl::Normal n1, pcl::Normal n2){
+    pcl::Normal n3;
+    Eigen::Vector3d v1(n1.normal[0], n1.normal[1], n1.normal[2]);
+    Eigen::Vector3d v2(n2.normal[0], n2.normal[1], n2.normal[2]);
+    Eigen::Vector3d v3 = v1.cross(v2);
+    n3.normal[0] = v3[0];
+    n3.normal[1] = v3[1];
+    n3.normal[2] = v3[2];
+    return n3;
+}
+
 void PCLCube::savetoFile(std::string fn){
   ROS_INFO("Saved %d data points to %s\n",(int)cube_cloud.points.size(),fn.c_str());
   pcl::io::savePCDFileASCII (fn, cube_cloud);
+}
+
+void PCLCube::findFaceCenters(pcl::PointNormal &fc, pcl::Normal normal, bool direction){
+
 }
 
 void PCLCube::generatePlanePoints(pcl::PointNormal center, float scale){
@@ -35,10 +52,6 @@ void PCLCube::generatePlanePoints(pcl::PointNormal center, float scale){
             //
         }
     }
-}
-
-void PCLCube::findFaceCenters(pcl::PointNormal &fc, pcl::Normal normal, bool direction){
-
 }
 
 void PCLCube::generatePoints(){
