@@ -3,6 +3,7 @@
 #define GT_CUBE "cube2"
 #define QD_CUBE "cube1"
 #define WORLD_FRAME "/world"
+//#define CORRESPONDENCE_ONLY
 
 void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t);
 void transformFromTo(pcl::PointXYZRGB& p, tf::StampedTransform t);
@@ -109,6 +110,14 @@ void AnalyzePC::visualizeError(){
     vis_pub.publish(marker);
 }
 
+void AnalyzePC::showKeyPoints(){
+    pcl::HarrisKeypoint3D<PointT, PointT, NormalT> hkp;
+    hkp.initCompute();
+    pcl::PointCloud<pcl::PointXYZRGB> keypoints;
+    hkp.setSearchSurface(gt_cloud);
+    hkp.detectKeypoints(keypoints);
+}
+
 tf::StampedTransform getTransform(std::string from_frame, std::string to_frame){
     tf::StampedTransform t;
     tf::TransformListener listener;
@@ -141,6 +150,7 @@ void AnalyzePC::spin(){
     while(ros::ok()){
         ros::spinOnce();
         visualizeError();
+        showKeyPoints();
         loop_rate.sleep();
     }
 }
