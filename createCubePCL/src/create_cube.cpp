@@ -2,7 +2,9 @@
 
 int main(int argc, char ** argv){
     ros::init (argc, argv, "pcl_cube_creation");
-    PCLCube c;
-    c.savetoFile();
+    PCLCube* c = new PCLCube;
+    c->generatePoints();
+    c->spin();
+    //c.savetoFile();
     return 0;
 }

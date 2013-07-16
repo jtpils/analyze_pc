@@ -15,7 +15,6 @@ PCLCube::PCLCube(){
     //std::cerr << cube_center << "\n";
 
     dense = false;
-    generatePoints();
 }
 
 void PCLCube::savetoFile(){
@@ -30,8 +29,8 @@ void PCLCube::savetoFile(std::string fn){
 void PCLCube::generatePlanePoints(pcl::PointNormal center, float scale){
     for (size_t i=0; i<cube_cloud.width/6; ++i){
         for(size_t j=0; j<cube_cloud.height; ++j){
-            std::cerr << "caleed?";
-            cube_cloud.points(i,j) = pcl::PointXYZ(0.0,0.0,0.0);
+            std::cout << "caleed?\n";
+            //cube_cloud.points(i,j) = pcl::PointXYZ(0.0,0.0,0.0);
             //TODO : get correct coordinates for points
             //
         }
@@ -39,6 +38,7 @@ void PCLCube::generatePlanePoints(pcl::PointNormal center, float scale){
 }
 
 void PCLCube::generatePoints(){
+    std::cerr << "Here?\n";
     cube_cloud.header.frame_id = "cube_cloud";
     float dense_scale = scale;
     if (dense){
@@ -52,4 +52,8 @@ void PCLCube::generatePoints(){
     for (int i=0; i<6; ++i){
         generatePlanePoints(face_centers[i], scale);
     }
+}
+
+void PCLCube::spin(){
+    ros::spin();
 }
