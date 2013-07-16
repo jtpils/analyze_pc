@@ -68,7 +68,7 @@ void PCLCube::generatePlanePoints(pcl::PointNormal center, int index){
         float n1_factor = scale*(1.0*i/width-index-0.5);
         for(size_t j=0; j<height; ++j){
             float n2_factor = scale*(1.0*j/width-0.5);
-            pcl::PointXYZ point;
+            pcl::PointXYZRGB point;
             point.x = center.x + n1_factor*n1.normal[0] + n2_factor*n2.normal[0];
             point.y = center.y + n1_factor*n1.normal[1] + n2_factor*n2.normal[1];
             point.z = center.z + n1_factor*n1.normal[2] + n2_factor*n2.normal[2];
