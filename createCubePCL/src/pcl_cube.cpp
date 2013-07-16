@@ -63,6 +63,8 @@ pcl::Normal findNormal(pcl::Normal n1, pcl::Normal n2){
 }
 
 bool PCLCube::regenerateCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
+    changeCenterTo(world_center,true);
+    changeOrientationBy(world_orientation.inverse(), true);
     if (center_noise){
         addNoiseToCenter();
         addNoiseToOrientation();
@@ -211,6 +213,7 @@ void PCLCube::addNoiseToOrientation(GaussianGen& gen){
 
 void PCLCube::changeCenterTo(pcl::PointXYZ new_center, bool world){
     if (world){
+        world_center = new_center;
         tf::Vector3 diff_origin = getFrameToWorldTransform().getOrigin();
         new_center.x = new_center.x + diff_origin.x();
         new_center.y = new_center.y + diff_origin.y();
@@ -228,21 +231,23 @@ void PCLCube::changeCenterTo(pcl::PointXYZ new_center, bool world){
     cube_center = new_center;
 }
 
-void PCLCube::changeCenterBy(pcl::PointXYZ diff_center){
+void PCLCube::changeCenterBy(pcl::PointXYZ diff_center, bool world){
     pcl::PointXYZ new_center;
     new_center.x = cube_center.x + diff_center.x;
     new_center.y = cube_center.y + diff_center.y;
     new_center.x = cube_center.z + diff_center.z;
-    changeCenterTo(new_center);
+    changeCenterTo(new_center,world);
 }
 
 void PCLCube::changeOrientationBy(Eigen::Quaterniond rot, bool world){
     pcl::Normal axis[3];
     if (world){
+        world_orientation = rot;
         Eigen::Quaterniond tf_rot;
         tf::RotationTFToEigen(getFrameToWorldTransform().getRotation(),tf_rot);
         rot = rot*tf_rot; //or is it the other way round?
     }
+    cube_orientation = rot;
     for (int i=0; i<3; ++i){
         axis[i] = cube_axes[i];
         Eigen::Vector3d new_axis = rot._transformVector(Eigen::Vector3d(axis[i].normal[0], axis[i].normal[1], axis[i].normal[2]));
