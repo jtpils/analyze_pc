@@ -91,9 +91,9 @@ void AnalyzePC::showKeyPoints(bool cache){
     ROS_INFO("Finding the keypoints");
     pcl::HarrisKeypoint3D<Point, pcl::PointXYZI, pcl::PointNormal> hkp;
     pcl::search::KdTree<Point>::Ptr tree(new pcl::search::KdTree<Point>());
+
     hkp.setRadius(harris_radius);
     hkp.setSearchMethod(tree);
-
     hkp.setInputCloud(gt_cloud);
     hkp.compute(*keypoints_gt);
     keypoints_gt->header.frame_id=gt_cloud->header.frame_id;
@@ -103,6 +103,8 @@ void AnalyzePC::showKeyPoints(bool cache){
     ROS_INFO("Found GT_CLOUD keypoints :%d", keypoints_gt->points.size());
 
     hkp.setInputCloud(qd_cloud);
+    hkp.setRadius(harris_radius);
+    hkp.setSearchMethod(tree);
     hkp.compute(*keypoints_qd);
     keypoints_qd->header.frame_id=qd_cloud->header.frame_id;
     pcl::toROSMsg(*keypoints_qd, kp_pc);
