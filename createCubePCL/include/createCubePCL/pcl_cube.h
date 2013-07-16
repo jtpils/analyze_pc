@@ -17,6 +17,8 @@
 
 #define DENSE_FACTOR 16
 #define POINTS_PER_UNIT 128
+#define NORMAL_SIGMA_FACTOR 2.0/POINTS_PER_UNIT
+#define INPLANE_SIGMA_FACTOR 2.0/POINTS_PER_UNIT
 
 typedef boost::normal_distribution<double> NormalDist;
 typedef boost::mt19937 RandomGen;
@@ -39,6 +41,7 @@ class PCLCube{
     void generatePlanePoints(pcl::PointNormal, int); // given a face center, generate points in that plane
     pcl::PointNormal findFaceCenter(int index, bool direction); // finds the center of a face with normal in the direction of index'th normal
     double getGaussian(double, double);
+    double getGaussian(double);
 
     ros::NodeHandle nh;
     //ros::AsyncSpinner _spinner; //TODO: ignore

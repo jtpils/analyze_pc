@@ -70,17 +70,29 @@ pcl::PointNormal  PCLCube::findFaceCenter(int index, bool direction){
 void PCLCube::generatePlanePoints(pcl::PointNormal center, int index){
     pcl::Normal n1 = cube_axes[(index/2+1)%3];
     pcl::Normal n2 = cube_axes[(index/2+2)%3];
+    pcl::Normal n3 = cube_axes[(index/2+3)%3];
     size_t width = cube_cloud.width/6;
     size_t height = cube_cloud.height;
+    float error_n1=0, error_n2=0, error_n3=0;
     for (size_t i=index*width; i<(index+1)*width; ++i){
         float n1_factor = scale*(1.0*i/width-index-0.5);
         for(size_t j=0; j<height; ++j){
             float n2_factor = scale*(1.0*j/width-0.5);
             pcl::PointXYZRGB point;
+            if (noise){
+                float normal_sigma = NORMAL_SIGMA_FACTOR*scale;
+                float inplane_sigma = INPLANE_SIGMA_FACTOR*scale;
+                if (dense){
+                    inplane_sigma = inplane_sigma/DENSE_FACTOR;
+                }
+                error_n1 = getGaussian(inplane_sigma);
+                error_n2 = getGaussian(inplane_sigma);
+                error_n3 = getGaussian(normal_sigma);
+            }
             // #TODO Make sure that normal is normalized!
-            point.x = center.x + n1_factor*n1.normal[0] + n2_factor*n2.normal[0];
-            point.y = center.y + n1_factor*n1.normal[1] + n2_factor*n2.normal[1];
-            point.z = center.z + n1_factor*n1.normal[2] + n2_factor*n2.normal[2];
+            point.x = center.x + (n1_factor+error_n1)*n1.normal[0] + (n2_factor+error_n2)*n2.normal[0] + error_n3*n3.normal[0];
+            point.y = center.y + (n1_factor+error_n1)*n1.normal[1] + (n2_factor+error_n2)*n2.normal[1] + error_n3*n3.normal[1];
+            point.z = center.z + (n1_factor+error_n1)*n1.normal[2] + (n2_factor+error_n2)*n2.normal[2]+error_n3*n3.normal[2];
             cube_cloud(i,j) = point;
         }
     }
@@ -100,6 +112,10 @@ void PCLCube::generatePoints(){
         generatePlanePoints(findFaceCenter(i/2, direction), i);
         direction = (!direction);
     }
+}
+
+double PCLCube::getGaussian(double variance){
+    return getGaussian(0, variance);
 }
 
 double PCLCube::getGaussian(double mean, double variance){
