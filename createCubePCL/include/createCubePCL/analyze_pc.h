@@ -11,6 +11,7 @@ class AnalyzePC {
   private:
     ros::NodeHandle nh;
     ros::Publisher vis_pub;
+    ros::Publisher kp_pub;
     ros::Subscriber gt_cloud_sub;
     ros::Subscriber qd_cloud_sub;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr gt_cloud;
