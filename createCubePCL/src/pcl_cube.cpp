@@ -26,6 +26,8 @@ gaussian_dist(0,1)
     scale = 1.0;
     std::string topic_name = "/"+cube_name+"/cloud";
     point_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>(topic_name,1);
+    std::string service_name = "/"+cube_name+"/regenerate";
+    regenerate_points_server = nh.advertiseService(service_name,&PCLCube::regenerateCb, this);
     generator = new GaussianGen(rng, gaussian_dist);
 
     //_spinner.= ros::AsyncSpinner(1);
@@ -49,6 +51,12 @@ pcl::Normal findNormal(pcl::Normal n1, pcl::Normal n2){
     n3.normal[1] = v3[1];
     n3.normal[2] = v3[2];
     return n3;
+}
+
+bool PCLCube::regenerateCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
+    generatePoints();
+    colorIt();
+    return true;
 }
 
 void PCLCube::savetoFile(std::string fn){
@@ -221,7 +229,19 @@ void PCLCube::changeOrientationBy(Eigen::Quaterniond rot, bool world){
 void PCLCube::colorIt(uint8_t r, uint8_t g, uint8_t b){
     for (size_t i=0; i<cube_cloud.width; ++i){
         for (size_t j=0; j<cube_cloud.height; ++j){
-            uint32_t rgb = ((uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b);
+            rgb = ((uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b);
+            cube_cloud(i,j).rgb = *reinterpret_cast<float*>(&rgb);
+        }
+    }
+}
+
+void PCLCube::colorIt(uint32_t _rgb){
+    rgb = _rgb;
+}
+
+void PCLCube::colorIt(){
+    for (size_t i=0; i<cube_cloud.width; ++i){
+        for (size_t j=0; j<cube_cloud.height; ++j){
             cube_cloud(i,j).rgb = *reinterpret_cast<float*>(&rgb);
         }
     }
