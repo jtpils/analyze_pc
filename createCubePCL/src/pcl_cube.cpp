@@ -4,6 +4,7 @@
  */
 
 #include <createCubePCL/pcl_cube.h>
+
 pcl::Normal findNormal(pcl::Normal n1, pcl::Normal n2);
 
 PCLCube::PCLCube(){
@@ -18,6 +19,7 @@ PCLCube::PCLCube(){
     scale = 1.0;
 
     point_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/cube_cloud",1);
+    generatePoints();
 };
 
 void PCLCube::savetoFile(){

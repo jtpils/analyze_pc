@@ -17,22 +17,22 @@
 
 class PCLCube{
   public:
-    PCLCube();
-    void spin();
-    void savetoFile();
+    PCLCube(); // the constructor
+    void spin(); // calls ros::spinOnce and hence the callbacks for subscriptions, if any
+    void savetoFile(); //saves the cube point cloud to pcd file
     void savetoFile(std::string filename);
-    void generatePoints();
 
   private:
-    void generatePlanePoints(pcl::PointNormal, int);
-    pcl::PointNormal findFaceCenter(int index, bool direction);
-    void publishPointCloud();
+    void generatePlanePoints(pcl::PointNormal, int); // given a face center, generate points in that plane
+    pcl::PointNormal findFaceCenter(int index, bool direction); // finds the center of a face with normal in the direction of index'th normal
+    void publishPointCloud(); // publishes the pcl point cloud after converting to sensor_msgs::PointCloud2
 
     ros::NodeHandle nh;
-    ros::Publisher point_cloud_pub;
-    pcl::PointCloud<pcl::PointXYZ> cube_cloud;
+    ros::Publisher point_cloud_pub; // ros publisher to  publish the cube cloud
+    pcl::PointCloud<pcl::PointXYZ> cube_cloud; // the cube cloud
     pcl::PointXYZ cube_center; // Cube center 
     pcl::Normal cube_axes[3]; // vectors along the sides. Any two would define the cube
+    void generatePoints(); //generates the points of the cube pointcloud
 
     float scale;
     bool dense;
