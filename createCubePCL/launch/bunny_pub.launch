@@ -1,16 +1,19 @@
 <?xml version="1.0"?>
 
 <launch>
-    <node pkg="tf" type="static_transform_publisher" name="world_to_laser1"  args="0 0 0 0 0 0 /world /laser_bunny000 100" />
-    <node pkg="tf" type="static_transform_publisher" name="world_to_laser2"  args="0 0 0 0 0 0 /world /laser_bunny090 100" />
+    <arg name="gt_name" default="bun000"/>
+    <arg name="qd_name" default="bun090"/>
 
-    <node pkg="pcl_ros" type="pcd_to_pointcloud" name="bunny000_node" args="$(find createCubePCL)/data/bun000_UnStructured.pcd 0.1" output="screen">
-        <remap from="cloud_pcd" to="/bunny000/cloud"/>
-        <param name="frame_id" value="laser_bunny000"/>
+    <node pkg="tf" type="static_transform_publisher" name="world_to_laser0"  args="0 0 0 0 0 0 /world /laser_$(arg gt_name) 100" />
+    <node pkg="tf" type="static_transform_publisher" name="world_to_laser2"  args="0 0 0 0 0 0 /world /laser_$(arg qd_name) 100" />
+
+    <node pkg="pcl_ros" type="pcd_to_pointcloud" name="$(arg gt_name)_node" args="$(find createCubePCL)/data/$(arg gt_name)_UnStructured.pcd 0.1" output="screen">
+        <remap from="cloud_pcd" to="/$(arg gt_name)/cloud"/>
+        <param name="frame_id" value="laser_$(arg gt_name)"/>
     </node>
-    <node pkg="pcl_ros" type="pcd_to_pointcloud" name="bunny090_node" args="$(find createCubePCL)/data/bun090_UnStructured.pcd 0.1" output="screen">
-        <remap from="cloud_pcd" to="/bunny090/cloud"/>
-        <param name="frame_id" value="/laser_bunny090"/>
+    <node pkg="pcl_ros" type="pcd_to_pointcloud" name="$(arg qd_name)_node" args="$(find createCubePCL)/data/$(arg qd_name)_UnStructured.pcd 0.1" output="screen">
+        <remap from="cloud_pcd" to="/$(arg qd_name)/cloud"/>
+        <param name="frame_id" value="laser_$(arg qd_name)"/>
     </node>
 
 </launch>
