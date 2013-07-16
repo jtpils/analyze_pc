@@ -148,7 +148,7 @@ void PCLCube::generatePoints(){
     if (dense){
         dense_scale*=dense_factor;
     }
-    cube_cloud.header.frame_id = "laser_"+cube_name;
+    cube_cloud.header.frame_id = "/laser_"+cube_name;
     cube_cloud.width = 6*(points_per_unit*dense_scale)*(points_per_unit*dense_scale);
     cube_cloud.height = 1;
     cube_cloud.points.resize(cube_cloud.width*cube_cloud.height);
@@ -278,8 +278,8 @@ void PCLCube::colorIt(){
 
 void PCLCube::getTransform(){
     try {
-        listener.waitForTransform("/world","laser_"+cube_name, ros::Time(0), ros::Duration(10.0) );
-        listener.lookupTransform("/world","laser_"+cube_name,ros::Time(0), world_to_frame_transform);
+        listener.waitForTransform("/world","/laser_"+cube_name, ros::Time(0), ros::Duration(10.0) );
+        listener.lookupTransform("/world","/laser_"+cube_name,ros::Time(0), world_to_frame_transform);
     }catch(tf::TransformException ex){
         ROS_ERROR("%s",ex.what());
     }
