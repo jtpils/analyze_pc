@@ -16,7 +16,7 @@
 #include <pcl/registration/icp.h>
 #include <pcl/io/pcd_io.h>
 */
-typedef pcl::PointXYZRGB Point;
+typedef pcl::PointXYZ PointC;
 
 enum correspondence {mBCL, mGCL, mQCL};
 
@@ -32,8 +32,8 @@ class CoveragePC {
     ros::Subscriber qd_cloud_sub;
     ros::ServiceServer set_parameters_server;
 
-    pcl::PointCloud<Point>::Ptr gt_cloud;
-    pcl::PointCloud<Point>::Ptr qd_cloud;
+    pcl::PointCloud<PointC>::Ptr gt_cloud;
+    pcl::PointCloud<PointC>::Ptr qd_cloud;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cov_cloud;
     std::vector<correspondence> cloud_corresp;
 

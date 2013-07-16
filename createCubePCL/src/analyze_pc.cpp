@@ -1,18 +1,12 @@
 #include <createCubePCL/analyze_pc.h>
 #include "dm_colors.hpp"
+#include "utils.hpp"
 
 #define WORLD_FRAME "/world"
 //#define CORRESPONDENCE_ONLY
 #define ERROR_LINES_DISPLAY
 //#define VIEW_FPFH_HISTOGRAMS
 #define SAVE_FPFH_HISTOGRAMS
-
-void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t);
-void transformFromTo(Point& p, tf::StampedTransform t);
-tf::StampedTransform getTransform(std::string from_frame, std::string to_frame);
-std::vector<int> findNearestPointIndices(Point& searchPoint, pcl::PointCloud<Point>::Ptr& cloud, pcl::KdTreeFLANN<Point>& kdtree, int K);
-
-pcl::PointCloud<pcl::PointXYZ>::Ptr toPointXYZ(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud);
 
 std::string gt_name;
 std::string qd_name;
@@ -480,56 +474,6 @@ bool AnalyzePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Respo
             max_correspondence_distance);
     nh.setParam("/analyze_pc/sacia/nr_iterations", nr_iterations);
     return true;
-}
-
-tf::StampedTransform getTransform(std::string from_frame, std::string to_frame){
-    tf::StampedTransform t;
-    tf::TransformListener listener;
-    try {
-        listener.waitForTransform(from_frame, to_frame, ros::Time(0), ros::Duration(10.0));
-        listener.lookupTransform(from_frame, to_frame, ros::Time(0), t);
-    }catch(tf::TransformException ex){
-        ROS_ERROR("%s",ex.what());
-    }
-    return t;
-}
-
-void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t){
-    tf::Vector3 origin = t.getOrigin();
-    p.x = p.x - origin.x();
-    p.y = p.y - origin.y();
-    p.z = p.z - origin.z();
-    //Translation done : Now rotation
-}
-
-void transformFromTo(Point& p, tf::StampedTransform t){
-    tf::Vector3 origin = t.getOrigin();
-    p.x = p.x - origin.x();
-    p.y = p.y - origin.y();
-    p.z = p.z - origin.z();
-}
-
-std::vector<int> findNearestPointIndices(Point& searchPoint, pcl::PointCloud<Point>::Ptr& cloud,
-        pcl::KdTreeFLANN<Point>& kdtree, int K){
-    std::vector<int> pointIdxNKNSearch(K);
-    std::vector<float> pointNKNSquaredDistance(K);
-    if ( kdtree.nearestKSearch (searchPoint, K, pointIdxNKNSearch, pointNKNSquaredDistance) > 0 ){
-        return pointIdxNKNSearch;
-    }
-    pointIdxNKNSearch.clear();
-    return pointIdxNKNSearch;
-}
-
-pcl::PointCloud<pcl::PointXYZ>::Ptr toPointXYZ(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud){
-    pcl::PointCloud<pcl::PointXYZ>::Ptr new_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-    for (size_t i=0; i<cloud->width; ++i){
-        pcl::PointXYZ new_point;
-        new_point.x = cloud->points[i].x;
-        new_point.y = cloud->points[i].y;
-        new_point.z = cloud->points[i].z;
-        new_cloud->points.push_back(new_point);
-    }
-    return new_cloud;
 }
 
 pcl::PointCloud<Point>::Ptr AnalyzePC::getCloud(std::string base_name){
