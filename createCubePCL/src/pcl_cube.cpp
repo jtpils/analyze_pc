@@ -7,7 +7,8 @@
 
 pcl::Normal findNormal(pcl::Normal n1, pcl::Normal n2);
 
-PCLCube::PCLCube(){
+PCLCube::PCLCube(std::string name){
+    cube_name = name;
     cube_center.x = 0;
     cube_center.y = 0;
     cube_center.z = 0;
@@ -17,8 +18,8 @@ PCLCube::PCLCube(){
 
     dense = false;
     scale = 1.0;
-
-    point_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/cube_cloud",1);
+    std::string topic_name = "/"+cube_name+"/cloud";
+    point_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>(topic_name,1);
     //_spinner.= ros::AsyncSpinner(1);
     generatePoints();
 };
