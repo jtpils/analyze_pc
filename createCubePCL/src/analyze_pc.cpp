@@ -11,13 +11,16 @@ void transformFromTo(geometry_msgs::Point& p, tf::StampedTransform t);
 void transformFromTo(Point& p, tf::StampedTransform t);
 tf::StampedTransform getTransform(std::string from_frame, std::string to_frame);
 std::vector<int> findNearestPointIndices(Point searchPoint, pcl::PointCloud<Point>::Ptr cloud, int K=1);
+pcl::PointCloud<pcl::PointXYZ>::Ptr toPointXYZ(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud);
 
 std::string gt_name;
 std::string qd_name;
 
 AnalyzePC::AnalyzePC():
 gt_cloud(new pcl::PointCloud<Point>),
-qd_cloud(new pcl::PointCloud<Point>)
+qd_cloud(new pcl::PointCloud<Point>),
+keypoints_gt(new pcl::PointCloud<pcl::PointXYZI>),
+keypoints_qd(new pcl::PointCloud<pcl::PointXYZI>)
 {
     std::string gt_cloud_topic_name = "/"+gt_name+"/cloud";
     std::string qd_cloud_topic_name = "/"+qd_name+"/cloud";
@@ -153,20 +156,20 @@ void AnalyzePC::showKeyPoints(){
     hkp.setSearchMethod(tree);
 
     hkp.setInputCloud(gt_cloud);
-    hkp.compute(keypoints_gt);
-    keypoints_gt.header.frame_id=gt_cloud->header.frame_id;
-    pcl::toROSMsg(keypoints_gt, kp_pc);
+    hkp.compute(*keypoints_gt);
+    keypoints_gt->header.frame_id=gt_cloud->header.frame_id;
+    pcl::toROSMsg(*keypoints_gt, kp_pc);
     kpg_pub.publish(kp_pc);
-    pcl::io::savePCDFileASCII ("kp_gt.pcd", keypoints_gt);
-    ROS_INFO("Found GT_CLOUD keypoints :%d", keypoints_gt.points.size());
+    pcl::io::savePCDFileASCII ("kp_gt.pcd", *keypoints_gt);
+    ROS_INFO("Found GT_CLOUD keypoints :%d", keypoints_gt->points.size());
 
     hkp.setInputCloud(qd_cloud);
-    hkp.compute(keypoints_qd);
-    keypoints_qd.header.frame_id=qd_cloud->header.frame_id;
-    pcl::toROSMsg(keypoints_qd, kp_pc);
+    hkp.compute(*keypoints_qd);
+    keypoints_qd->header.frame_id=qd_cloud->header.frame_id;
+    pcl::toROSMsg(*keypoints_qd, kp_pc);
     kpq_pub.publish(kp_pc);
-    pcl::io::savePCDFileASCII ("kp_qd.pcd", keypoints_qd);
-    ROS_INFO("Found QD_CLOUD keypoints :%d", keypoints_qd.points.size());
+    pcl::io::savePCDFileASCII ("kp_qd.pcd", *keypoints_qd);
+    ROS_INFO("Found QD_CLOUD keypoints :%d", keypoints_qd->points.size());
 }
 
 void AnalyzePC::estimateFPFHFeatures(){
@@ -186,7 +189,7 @@ void AnalyzePC::estimateFPFHFeatures(){
     normal_estimation.compute(*normals);
     fpfh.setSearchSurface(gt_cloud);
     fpfh.setInputNormals(normals);
-    fpfh.setInputCloud(keypoints_gt);
+    fpfh.setInputCloud(toPointXYZ(keypoints_gt));
     fpfh.setSearchMethod(tree);
     fpfh.setRadiusSearch(fpfh_estimation_radius);
     fpfh.compute(fpfhs_gt);
@@ -211,7 +214,7 @@ void AnalyzePC::estimateFPFHFeatures(){
     normal_estimation.compute(*normals);
     fpfh.setSearchSurface(qd_cloud);
     fpfh.setInputNormals(normals);
-    fpfh.setInputCloud(keypoints_qd);
+    fpfh.setInputCloud(toPointXYZ(keypoints_qd));
     fpfh.setSearchMethod(tree);
     fpfh.setRadiusSearch(fpfh_estimation_radius);
     fpfh.compute(fpfhs_qd);
@@ -276,6 +279,18 @@ std::vector<int> findNearestPointIndices(Point searchPoint, pcl::PointCloud<Poin
     }
     pointIdxNKNSearch.clear();
     return pointIdxNKNSearch;
+}
+
+pcl::PointCloud<pcl::PointXYZ>::Ptr toPointXYZ(pcl::PointCloud<pcl::PointXYZI>::Ptr cloud){
+    pcl::PointCloud<pcl::PointXYZ>::Ptr new_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+    for (size_t i=0; i<cloud->width; ++i){
+        pcl::PointXYZ new_point;
+        new_point.x = cloud->points[i].x;
+        new_point.y = cloud->points[i].y;
+        new_point.z = cloud->points[i].z;
+        new_cloud->points.push_back(new_point);
+    }
+    return new_cloud;
 }
 
 void AnalyzePC::spin(){
