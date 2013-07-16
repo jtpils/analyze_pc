@@ -182,7 +182,7 @@ void AnalyzePC::showKeyPoints(){
         searchPoint.x = keypoints_gt.points[i].x;
         searchPoint.y = keypoints_gt.points[i].y;
         searchPoint.z = keypoints_gt.points[i].z;
-        keypoints_gt_indices.push_back(findNearestPointIndices(searchPoint, gt_cloud, 1)[0]);
+        keypoints_qd_indices.push_back(findNearestPointIndices(searchPoint, qd_cloud, 1)[0]);
     }
     pcl::io::savePCDFileASCII ("kp_qd.pcd", keypoints_qd);
     ROS_INFO("Found QD_CLOUD keypoints :%d", keypoints_qd.points.size());
@@ -243,7 +243,7 @@ void AnalyzePC::estimateFPFHFeatures(){
 
     ROS_INFO("Found QD_CLOUD feature histogram :%d", fpfhs_qd.points.size());
 #ifdef SAVE_FPFH_HISTOGRAMS
-        pcl::io::savePCDFileASCII ("fpfhs_qd.pcd", fpfhs_qd);
+    pcl::io::savePCDFileASCII ("fpfhs_qd.pcd", fpfhs_qd);
 #endif
 
 #ifdef VIEW_FPFH_HISTOGRAMS
