@@ -30,3 +30,8 @@ srv_gen/
 *.hex
 *.map
 core
+*.tgz
+data/
+cache/
+test/
+*.pcd
