@@ -35,4 +35,5 @@ set(pcl_cube_HDRS
 set(pcl_cube_SRCS
     src/pcl_cube.cpp)
 
-rosbuild_add_executable(save_cube src/create_cube.cpp ${pcl_cube_HDRS} ${pcl_cube_SRCS})
+rosbuild_add_executable(save_cube src/save_cube.cpp ${pcl_cube_HDRS} ${pcl_cube_SRCS})
+rosbuild_add_executable(publish_cube src/publish_cube.cpp ${pcl_cube_HDRS} ${pcl_cube_SRCS})

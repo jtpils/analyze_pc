@@ -24,10 +24,12 @@ class PCLCube{
     void generatePoints();
 
   private:
-    void generatePlanePoints(pcl::PointNormal, float);
-    void findFaceCenters(pcl::PointNormal &fc, pcl::Normal normal, bool direction);
+    void generatePlanePoints(pcl::PointNormal, int);
+    pcl::PointNormal findFaceCenter(int index, bool direction);
+    void publishPointCloud();
 
     ros::NodeHandle nh;
+    ros::Publisher point_cloud_pub;
     pcl::PointCloud<pcl::PointXYZ> cube_cloud;
     pcl::PointXYZ cube_center; // Cube center 
     pcl::Normal cube_axes[3]; // vectors along the sides. Any two would define the cube
