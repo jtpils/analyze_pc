@@ -49,6 +49,7 @@ class PCLCube{
     void addNoiseToCenter(GaussianGen&);
     void addNoiseToOrientation();
     void addNoiseToOrientation(GaussianGen&);
+    void setOcclusion(float[]);
     tf::StampedTransform getFrameToWorldTransform();
     tf::StampedTransform getWorldToFrameTransform();
 
@@ -93,6 +94,7 @@ class PCLCube{
     double inplane_sigma_factor;
     double center_sigma_factor;
     double orientation_sigma_factor;
+    float occluded_fraction[6];
 
 };
 #endif

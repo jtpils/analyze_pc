@@ -38,6 +38,9 @@ gaussian_dist(0,1)
     regenerate_points_server = nh.advertiseService(service_name,&PCLCube::regenerateCb, this);
     get_parameters_server = nh.advertiseService(param_service_name,&PCLCube::setParamCb, this);
     generator = new GaussianGen(rng, gaussian_dist);
+    for (int i=0; i<6; ++i){
+        occluded_fraction[i]=0;
+    }
 
     //_spinner.= ros::AsyncSpinner(1);
     generatePoints();
@@ -118,25 +121,39 @@ void PCLCube::generatePlanePoints(pcl::PointNormal center, int index){
     size_t width = sqrt(cube_cloud.width/6);
     size_t height = width;//cube_cloud.height;
     float error_n1=0, error_n2=0, error_n3=0;
+    float fraction = occluded_fraction[index];
+    int start_occlusion_index, end_occlusion_index;
+    if (fraction >= 0 and fraction <= 1){
+        int possible_range = (1-fraction)*width*height;
+        start_occlusion_index = rand()%possible_range;
+        end_occlusion_index = start_occlusion_index+fraction*width*height;
+    }
     for (size_t i=index*width; i<(index+1)*width; ++i){
         float n1_factor = scale*(1.0*i/width-index-0.5);
         for(size_t j=0; j<height; ++j){
-            float n2_factor = scale*(1.0*j/width-0.5);
             pcl::PointXYZRGB point;
-            if (noise){
-                float normal_sigma = normal_sigma_factor*scale;
-                float inplane_sigma = inplane_sigma_factor*scale;
-                if (dense){
-                    inplane_sigma = inplane_sigma/dense_factor;
+            int linear_index =(i-index*width)*height+j;
+            if (linear_index > start_occlusion_index and linear_index < end_occlusion_index){
+                point.x = std::numeric_limits<float>::max();
+                point.x = std::numeric_limits<float>::max();
+                point.x = std::numeric_limits<float>::max();
+            }else{
+                float n2_factor = scale*(1.0*j/width-0.5);
+                if (noise){
+                    float normal_sigma = normal_sigma_factor*scale;
+                    float inplane_sigma = inplane_sigma_factor*scale;
+                    if (dense){
+                        inplane_sigma = inplane_sigma/dense_factor;
+                    }
+                    error_n1 = getGaussian(inplane_sigma);
+                    error_n2 = getGaussian(inplane_sigma);
+                    error_n3 = getGaussian(normal_sigma);
                 }
-                error_n1 = getGaussian(inplane_sigma);
-                error_n2 = getGaussian(inplane_sigma);
-                error_n3 = getGaussian(normal_sigma);
+                // #TODO Make sure that normal is normalized!
+                point.x = center.x + (n1_factor+error_n1)*n1.normal[0] + (n2_factor+error_n2)*n2.normal[0] + error_n3*n3.normal[0];
+                point.y = center.y + (n1_factor+error_n1)*n1.normal[1] + (n2_factor+error_n2)*n2.normal[1] + error_n3*n3.normal[1];
+                point.z = center.z + (n1_factor+error_n1)*n1.normal[2] + (n2_factor+error_n2)*n2.normal[2]+error_n3*n3.normal[2];
             }
-            // #TODO Make sure that normal is normalized!
-            point.x = center.x + (n1_factor+error_n1)*n1.normal[0] + (n2_factor+error_n2)*n2.normal[0] + error_n3*n3.normal[0];
-            point.y = center.y + (n1_factor+error_n1)*n1.normal[1] + (n2_factor+error_n2)*n2.normal[1] + error_n3*n3.normal[1];
-            point.z = center.z + (n1_factor+error_n1)*n1.normal[2] + (n2_factor+error_n2)*n2.normal[2]+error_n3*n3.normal[2];
             cube_cloud[i*width+j] = point;
         }
     }
@@ -209,6 +226,13 @@ void PCLCube::addNoiseToOrientation(){
 void PCLCube::addNoiseToOrientation(GaussianGen& gen){
     generator = new GaussianGen(gen);
     addNoiseToOrientation();
+}
+
+void PCLCube::setOcclusion(float fractions[6]){
+    for (int i=0; i<6; ++i){
+        occluded_fraction[i] = fractions[i];
+    }
+    generatePoints();
 }
 
 void PCLCube::changeCenterTo(pcl::PointXYZ new_center, bool world){

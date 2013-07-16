@@ -13,6 +13,8 @@ int main (int argc, char ** argv){
     //c1->addNoiseToCenter(generator);
     //c1->addNoiseToOrientation(generator);
     c1->addNoise(generator);
+    float occlusion_fraction[6] = {0.5,0,0,0,0,0.5};
+    c1->setOcclusion(occlusion_fraction);
     c1->changeCenterTo(world_cube_center, true);
     c1->changeOrientationBy(world_cube_orientation, true);
     c1->colorIt(255,0,0);
