@@ -20,7 +20,9 @@ AnalyzePC::AnalyzePC():
 gt_cloud(new pcl::PointCloud<Point>),
 qd_cloud(new pcl::PointCloud<Point>),
 keypoints_gt(new pcl::PointCloud<pcl::PointXYZI>),
-keypoints_qd(new pcl::PointCloud<pcl::PointXYZI>)
+keypoints_qd(new pcl::PointCloud<pcl::PointXYZI>),
+fpfhs_gt(new pcl::PointCloud<pcl::FPFHSignature33>),
+fpfhs_qd(new pcl::PointCloud<pcl::FPFHSignature33>)
 {
     std::string gt_cloud_topic_name = "/"+gt_name+"/cloud";
     std::string qd_cloud_topic_name = "/"+qd_name+"/cloud";
@@ -29,6 +31,8 @@ keypoints_qd(new pcl::PointCloud<pcl::PointXYZI>)
     vis_pub = nh.advertise<visualization_msgs::Marker>("/cloud_vis_marker",1, this);
     kpg_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+gt_name+"/kp_cloud",1);
     kpq_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+qd_name+"/kp_cloud",1);
+    ransaced_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>
+        ("/"+qd_name+"/registered_cloud", 1);
     set_parameters_server = nh.advertiseService("/analyze_pc/set_parameters",
             &AnalyzePC::setParamCb, this);
 
@@ -38,6 +42,13 @@ keypoints_qd(new pcl::PointCloud<pcl::PointXYZI>)
     nh.setParam("/analyze_pc/normal_estimation_radius", normal_estimation_radius);
     fpfh_estimation_radius = 0.03;
     nh.setParam("/analyze_pc/fpfh_estimation_radius", fpfh_estimation_radius);
+    min_sample_distance = 0.05;
+    nh.setParam("/analyze_pc/sacia/min_sample_distance", min_sample_distance);
+    max_correspondence_distance = 0.01*0.01;
+    nh.setParam("/analyze_pc/sacia/max_correspondence_distance",
+            max_correspondence_distance);
+    nr_iterations = 500;
+    nh.setParam("/analyze_pc/sacia/nr_iterations", nr_iterations);
 
     feature_added_gt = false;
     feature_added_qd = false;
@@ -192,21 +203,21 @@ void AnalyzePC::estimateFPFHFeatures(){
     fpfh.setInputCloud(toPointXYZ(keypoints_gt));
     fpfh.setSearchMethod(tree);
     fpfh.setRadiusSearch(fpfh_estimation_radius);
-    fpfh.compute(fpfhs_gt);
-    fpfhs_gt.width = fpfhs_gt.size();
-    fpfhs_gt.height = 1;
+    fpfh.compute(*fpfhs_gt);
+    fpfhs_gt->width = fpfhs_gt->size();
+    fpfhs_gt->height = 1;
 
-    ROS_INFO("Found GT_CLOUD feature histogram :%d",fpfhs_gt.size());
+    ROS_INFO("Found GT_CLOUD feature histogram :%d",fpfhs_gt->size());
 #ifdef SAVE_FPFH_HISTOGRAMS
-    pcl::io::savePCDFileASCII ("fpfhs_gt.pcd", fpfhs_gt);
+    pcl::io::savePCDFileASCII ("fpfhs_gt.pcd", *fpfhs_gt);
 #endif
 
 #ifdef VIEW_FPFH_HISTOGRAMS
     if (!feature_added_gt){
-        hist.addFeatureHistogram (fpfhs_gt, 33 , "fpfh_dist_gt", 640, 200);
+        hist.addFeatureHistogram (*fpfhs_gt, 33 , "fpfh_dist_gt", 640, 200);
         feature_added_gt= true;
     }else{
-        hist.updateFeatureHistogram (fpfhs_gt, 33 , "fpfh_dist_gt");
+        hist.updateFeatureHistogram (*fpfhs_gt, 33 , "fpfh_dist_gt");
     }
 #endif
 
@@ -219,29 +230,50 @@ void AnalyzePC::estimateFPFHFeatures(){
     fpfh.setInputCloud(toPointXYZ(keypoints_qd));
     fpfh.setSearchMethod(tree);
     fpfh.setRadiusSearch(fpfh_estimation_radius);
-    fpfh.compute(fpfhs_qd);
-    fpfhs_qd.width = fpfhs_qd.size();
-    fpfhs_qd.height = 1;
+    fpfh.compute(*fpfhs_qd);
+    fpfhs_qd->width = fpfhs_qd->size();
+    fpfhs_qd->height = 1;
 
-    ROS_INFO("Found QD_CLOUD feature histogram :%d", fpfhs_qd.points.size());
+    ROS_INFO("Found QD_CLOUD feature histogram :%d", fpfhs_qd->size());
 #ifdef SAVE_FPFH_HISTOGRAMS
-    pcl::io::savePCDFileASCII ("fpfhs_qd.pcd", fpfhs_qd);
+    pcl::io::savePCDFileASCII ("fpfhs_qd.pcd", *fpfhs_qd);
 #endif
 
 #ifdef VIEW_FPFH_HISTOGRAMS
     if (!feature_added_qd){
-        hist.addFeatureHistogram (fpfhs_qd, 33 , "fpfh_dist_qd", 640, 200);
+        hist.addFeatureHistogram (*fpfhs_qd, 33 , "fpfh_dist_qd", 640, 200);
         feature_added_qd = true;
     }else{
-        hist.updateFeatureHistogram (fpfhs_qd, 33 , "fpfh_dist_qd");
+        hist.updateFeatureHistogram (*fpfhs_qd, 33 , "fpfh_dist_qd");
     }
 #endif
+}
+
+void AnalyzePC::applySACIA(){
+    pcl::PointCloud<Point> ransaced_source;
+    Eigen::Matrix4f transformation;
+    sac_ia.setMinSampleDistance(min_sample_distance);
+    sac_ia.setMaxCorrespondenceDistance(max_correspondence_distance);
+    sac_ia.setMaximumIterations(nr_iterations);
+    sac_ia.setInputCloud(toPointXYZ(keypoints_qd));
+    sac_ia.setSourceFeatures(fpfhs_qd);
+    sac_ia.setInputTarget(toPointXYZ(keypoints_gt));
+    sac_ia.setTargetFeatures(fpfhs_gt);
+    sac_ia.align(ransaced_source, transformation);
+    pcl::io::savePCDFileASCII("registered_qd_cloud.pcd", ransaced_source);
+    sensor_msgs::PointCloud2 pc;
+    pcl::toROSMsg(ransaced_source, pc);
+    ransaced_cloud_pub.publish(pc);
 }
 
 bool AnalyzePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
     nh.getParam("/analyze_pc/harris_radius", harris_radius);
     nh.getParam("/analyze_pc/normal_estimation_radius", normal_estimation_radius);
     nh.getParam("/analyze_pc/fpfh_estimation_radius", fpfh_estimation_radius);
+    nh.setParam("/analyze_pc/sacia/min_sample_distance", min_sample_distance);
+    nh.setParam("/analyze_pc/sacia/max_correspondence_distance",
+            max_correspondence_distance);
+    nh.setParam("/analyze_pc/sacia/nr_iterations", nr_iterations);
     return true;
 }
 
@@ -301,9 +333,10 @@ void AnalyzePC::spin(){
     ros::Rate loop_rate(10);
     while(ros::ok()){
         ros::spinOnce();
-        //visualizeError();
         showKeyPoints();
         estimateFPFHFeatures();
+        applySACIA();
+        //visualizeError();
 #ifdef VIEW_FPFH_HISTOGRAMS
         hist.spinOnce(10);
 #endif
