@@ -31,6 +31,8 @@ qd_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
     nh.setParam("/analyze_pc/normal_estimation_radius", normal_estimation_radius);
     fpfh_estimation_radius = 0.4;
     nh.setParam("/analyze_pc/fpfh_estimation_radius", fpfh_estimation_radius);
+
+    feature_added = false;
 }
 
 void AnalyzePC::gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
@@ -192,6 +194,14 @@ void AnalyzePC::estimateFPFHFeatures(){
     fpfh.setRadiusSearch(fpfh_estimation_radius);
     fpfh.compute(fpfhs_qd);
 
+    if (!feature_added){
+        hist.addFeatureHistogram (fpfhs_gt, 33 , "fpfh_dist_gt", 640, 200);
+        hist.addFeatureHistogram (fpfhs_qd, 33 , "fpfh_dist_qd", 640, 200);
+        feature_added = true;
+    }else{
+        hist.updateFeatureHistogram (fpfhs_gt, 33 , "fpfh_dist_gt");
+        hist.updateFeatureHistogram (fpfhs_qd, 33 , "fpfh_dist_qd");
+    }
 }
 
 bool AnalyzePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
@@ -235,6 +245,7 @@ void AnalyzePC::spin(){
         visualizeError();
         showKeyPoints();
         estimateFPFHFeatures();
+        hist.spinOnce(10);
         ROS_INFO(" ");
         loop_rate.sleep();
     }
