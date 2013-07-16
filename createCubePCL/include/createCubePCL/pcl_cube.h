@@ -35,8 +35,9 @@ class PCLCube{
     void savetoFile(); //saves the cube point cloud to pcd file
     void savetoFile(std::string filename);
     void colorIt(uint8_t, uint8_t, uint8_t);
-    void changeCenterTo(pcl::PointXYZ, bool world=true);
-    void changeOrientationBy(Eigen::Quaterniond, bool world=true);
+    void changeCenterTo(pcl::PointXYZ, bool world=false);
+    void changeCenterBy(pcl::PointXYZ);
+    void changeOrientationBy(Eigen::Quaterniond, bool world=false);
     void publishPointCloud(); // publishes the pcl point cloud after converting to sensor_msgs::PointCloud2
     void generatePoints(); //generates the points of the cube pointcloud
     void addNoise();
@@ -45,19 +46,21 @@ class PCLCube{
     void addNoiseToCenter(GaussianGen&);
     void addNoiseToOrientation();
     void addNoiseToOrientation(GaussianGen&);
-    void registerTFFrame();
+    tf::StampedTransform getFrameToWorldTransform();
+    tf::StampedTransform getWorldToFrameTransform();
 
   private:
     void generatePlanePoints(pcl::PointNormal, int); // given a face center, generate points in that plane
     pcl::PointNormal findFaceCenter(int index, bool direction); // finds the center of a face with normal in the direction of index'th normal
     double getGaussian(double, double);
     double getGaussian(double);
+    void getTransform();
 
     ros::NodeHandle nh;
     //ros::AsyncSpinner _spinner; //TODO: ignore
     ros::Publisher point_cloud_pub; // ros publisher to  publish the cube cloud
     tf::TransformListener listener;
-    tf::StampedTransform transform;
+    tf::StampedTransform world_to_frame_transform;
     pcl::PointCloud<pcl::PointXYZRGB> cube_cloud; // the cube cloud
     pcl::PointXYZ cube_center; // Cube center 
     Eigen::Quaternionf cube_orientation;
