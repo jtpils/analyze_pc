@@ -27,6 +27,10 @@ qd_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
 
     harris_radius = 0.3;
     nh.setParam("/analyze_pc/harris_radius", harris_radius);
+    normal_estimation_radius = 0.2;
+    nh.setParam("/analyze_pc/normal_estimation_radius", normal_estimation_radius);
+    fpfh_estimation_radius = 0.4;
+    nh.setParam("/analyze_pc/fpfh_estimation_radius", fpfh_estimation_radius);
 }
 
 void AnalyzePC::gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
@@ -39,8 +43,10 @@ void AnalyzePC::qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
 
 void AnalyzePC::visualizeError(){
     if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
+        ROS_ERROR("Not yet received point clouds");
         return;
     }
+    ROS_INFO("Visualizing the error");
     kdtree.setInputCloud(gt_cloud);
     visualization_msgs::Marker marker;
     marker.header.frame_id = WORLD_FRAME;
@@ -133,6 +139,11 @@ void AnalyzePC::visualizeError(){
 }
 
 void AnalyzePC::showKeyPoints(){
+    if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
+        ROS_ERROR("Not yet received point clouds");
+        return;
+    }
+    ROS_INFO("Finding the keypoints");
     pcl::HarrisKeypoint3D<pcl::PointXYZRGB, pcl::PointXYZI, pcl::PointNormal> hkp;
     sensor_msgs::PointCloud2 kp_pc;
     hkp.setRadius(harris_radius);
@@ -151,6 +162,11 @@ void AnalyzePC::showKeyPoints(){
 }
 
 void AnalyzePC::estimateFPFHFeatures(){
+    if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
+        ROS_ERROR("Not yet received point clouds");
+        return;
+    }
+    ROS_INFO("Estimating FPFH Features");
     pcl::FPFHEstimation<pcl::PointXYZRGB, pcl::Normal, pcl::FPFHSignature33> fpfh;
     pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>());
     pcl::NormalEstimation<pcl::PointXYZRGB, pcl::Normal> normal_estimation;
@@ -158,24 +174,30 @@ void AnalyzePC::estimateFPFHFeatures(){
 
     normal_estimation.setInputCloud(gt_cloud);
     normal_estimation.setSearchMethod(tree);
-    normal_estimation.setRadiusSearch(0.2);
+    normal_estimation.setRadiusSearch(normal_estimation_radius);
     normal_estimation.compute(*normals);
     fpfh.setInputCloud(gt_cloud);
     fpfh.setInputNormals(normals);
     fpfh.setSearchMethod(tree);
-    fpfh.setRadiusSearch(0.3);
+    fpfh.setRadiusSearch(fpfh_estimation_radius);
     fpfh.compute(fpfhs_gt);
 
     normal_estimation.setInputCloud(qd_cloud);
+    normal_estimation.setSearchMethod(tree);
+    normal_estimation.setRadiusSearch(normal_estimation_radius);
     normal_estimation.compute(*normals);
     fpfh.setInputCloud(qd_cloud);
     fpfh.setInputNormals(normals);
+    fpfh.setSearchMethod(tree);
+    fpfh.setRadiusSearch(fpfh_estimation_radius);
     fpfh.compute(fpfhs_qd);
 
 }
 
 bool AnalyzePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
     nh.getParam("/analyze_pc/harris_radius", harris_radius);
+    nh.getParam("/analyze_pc/normal_estimation_radius", normal_estimation_radius);
+    nh.getParam("/analyze_pc/fpfh_estimation_radius", fpfh_estimation_radius);
     return true;
 }
 
@@ -213,6 +235,7 @@ void AnalyzePC::spin(){
         visualizeError();
         showKeyPoints();
         estimateFPFHFeatures();
+        ROS_INFO(" ");
         loop_rate.sleep();
     }
 }
