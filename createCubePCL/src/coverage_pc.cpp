@@ -31,6 +31,9 @@ cov_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
     nh.setParam("/coverage_pc/min_nn", min_nn);
     min_nn_factor = 0.8;
     nh.setParam("/coverage_pc/min_nn_factor", min_nn_factor);
+    test_number = 0;
+    nh.setParam("/coverage_pc/test_number", test_number);
+    data_generated = true;
 }
 
 void CoveragePC::gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
@@ -45,6 +48,8 @@ bool CoveragePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Resp
     nh.getParam("/coverage_pc/max_correspondence_distance", max_correspondence_distance);
     nh.getParam("/coverage_pc/min_nn", min_nn);
     nh.getParam("/coverage_pc/min_nn_factor", min_nn_factor);
+    nh.getParam("/coverage_pc/test_number", test_number);
+    data_generated = false;
     return true;
 }
 
@@ -155,7 +160,7 @@ float CoveragePC::areaFunction(int n){
 void CoveragePC::estimateCoverage(){
     std::ofstream fout[3];
     for (int i=0; i<3; ++i){
-        fout[i].open((boost::to_string(i)+"_data.txt").c_str(), std::ofstream::out);
+        fout[i].open(("dist/"+boost::to_string(test_number)+"/"+boost::to_string(i)+"_data.txt").c_str(), std::ofstream::out);
     }
     if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
         ROS_WARN("Not yet received point clouds");
@@ -198,14 +203,17 @@ void CoveragePC::estimateCoverage(){
     for (int i=0; i<3; ++i){
         fout[i].close();
     }
+    data_generated = true;
 }
 
 void CoveragePC::spin(){
     ros::Rate loop_rate(2);
     while (ros::ok()){
         ros::spinOnce();
-        findCorrespondences();
-        estimateCoverage();
+        if (!data_generated){
+            findCorrespondences();
+            estimateCoverage();
+        }
         loop_rate.sleep();
         //if (!continueLoop()) break;
         ROS_INFO(" ");

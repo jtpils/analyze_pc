@@ -48,5 +48,7 @@ class CoveragePC {
     float cloud_fractions[3];
     int min_nn;
     double min_nn_factor;
+    int test_number;
+    bool data_generated;
 };
 #endif
