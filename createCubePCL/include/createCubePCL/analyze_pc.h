@@ -47,5 +47,6 @@ class AnalyzePC {
     double normal_estimation_radius;
     double fpfh_estimation_radius;
 
-    bool feature_added;
+    bool feature_added_gt;
+    bool feature_added_qd;
 };
