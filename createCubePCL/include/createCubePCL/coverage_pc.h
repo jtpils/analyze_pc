@@ -18,6 +18,8 @@
 */
 typedef pcl::PointXYZRGB Point;
 
+enum correspondence {mBCL, mGCL, mQCL};
+
 class CoveragePC {
   public:
     CoveragePC();
@@ -33,12 +35,15 @@ class CoveragePC {
     pcl::PointCloud<Point>::Ptr gt_cloud;
     pcl::PointCloud<Point>::Ptr qd_cloud;
     pcl::PointCloud<pcl::PointXYZRGB>::Ptr cov_cloud;
+    std::vector<correspondence> cloud_corresp;
 
     void gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
     void qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
     bool setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
     void findCorrespondences();
+    void estimateCoverage();
 
     double max_correspondence_distance;
+    float cloud_fractions[3];
 };
 #endif
