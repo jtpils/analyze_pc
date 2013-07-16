@@ -19,6 +19,7 @@
 #define POINTS_PER_UNIT 32
 #define NORMAL_SIGMA_FACTOR 2.0/POINTS_PER_UNIT/DENSE_FACTOR
 #define INPLANE_SIGMA_FACTOR 2.0/POINTS_PER_UNIT/DENSE_FACTOR
+#define CENTER_SIGMA_FACTOR 1/10
 
 typedef boost::normal_distribution<double> NormalDist;
 typedef boost::mt19937 RandomGen;
@@ -36,6 +37,8 @@ class PCLCube{
     void generatePoints(); //generates the points of the cube pointcloud
     void addNoise();
     void addNoise(GaussianGen&);
+    void addNoiseToCenter();
+    void addNoiseToCenter(GaussianGen&);
 
   private:
     void generatePlanePoints(pcl::PointNormal, int); // given a face center, generate points in that plane
