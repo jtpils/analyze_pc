@@ -6,6 +6,7 @@
 #include <createCubePCL/pcl_cube.h>
 
 pcl::Normal findNormal(pcl::Normal n1, pcl::Normal n2);
+void printQuaternion(Eigen::Quaternionf);
 
 PCLCube::PCLCube(std::string name):
 rng(static_cast<unsigned> (time(0))),
@@ -15,6 +16,7 @@ gaussian_dist(0,1)
     cube_center.x = 0;
     cube_center.y = 0;
     cube_center.z = 0;
+    cube_orientation.setIdentity();
     cube_axes[0] = pcl::Normal(0,1,0); //The Y-axis
     cube_axes[1] = pcl::Normal(0,0,1); //The Z-axis
     cube_axes[2] = findNormal(cube_axes[0],cube_axes[1]);
@@ -32,6 +34,10 @@ gaussian_dist(0,1)
 
 void PCLCube::savetoFile(){
     savetoFile("cube_pcl.pcd");
+}
+
+void printQuaternion(Eigen::Quaternionf q){
+    std::cout << "w: " << q.w() << ", x: " << q.x() << ", y: " << q.y() << ", z: " << q.z() << "\n";
 }
 
 pcl::Normal findNormal(pcl::Normal n1, pcl::Normal n2){
@@ -149,10 +155,15 @@ void PCLCube::addNoiseToCenter(GaussianGen& gen){
 }
 
 void PCLCube::addNoiseToOrientation(){
-    for(int i=0; i<3; ++i){
-        Eigen::Vector3f axis;
-    }
-    //generatePoints();
+    Eigen::Quaternionf err_rot;
+    float orient_sigma = ORIENTATION_SIGMA_FACTOR;
+    err_rot.w() = 1;
+    err_rot.x() = getGaussian(orient_sigma);
+    err_rot.y() = getGaussian(orient_sigma);
+    err_rot.z() = getGaussian(orient_sigma);
+    err_rot.normalize();
+    changeOrientationBy(err_rot);
+    generatePoints();
 }
 
 void PCLCube::addNoiseToOrientation(GaussianGen& gen){
@@ -173,6 +184,18 @@ void PCLCube::changeCenterTo(pcl::PointXYZ new_center){
         }
     }
     cube_center = new_center;
+}
+
+void PCLCube::changeOrientationBy(Eigen::Quaternionf rot){
+    for (int i=0; i<3; ++i){
+        pcl::Normal axis = cube_axes[i];
+        Eigen::Vector3f new_axis = rot._transformVector(Eigen::Vector3f(axis.normal[0], axis.normal[1], axis.normal[2]));
+        new_axis.normalize();
+        cube_axes[i].normal[0] = new_axis[0];
+        cube_axes[i].normal[1] = new_axis[1];
+        cube_axes[i].normal[2] = new_axis[2];
+    }
+    generatePoints();
 }
 
 void PCLCube::colorIt(uint8_t r, uint8_t g, uint8_t b){
