@@ -81,8 +81,8 @@ void AnalyzePC::visualizeError(){
 #ifdef ERROR_LINES_DISPLAY
     marker.type = visualization_msgs::Marker::LINE_LIST;
 #endif
-    marker.scale.x = 0.01;
-    marker.scale.y = 0.01;
+    marker.scale.x = 0.001;
+    marker.scale.y = 0.001;
 #ifdef ERROR_LINES_DISPLAY
     marker.scale.x = 0.001;
 #endif
@@ -156,13 +156,13 @@ void AnalyzePC::visualizeError(){
         avg_error = (avg_error*i + error_data[i])/(i+1);
     }
     ROS_INFO("Average error (huber fitness score) is %f",avg_error);
-    vis_pub.publish(marker);
-    if (avg_error < min_fitness_score){
+    if (avg_error <= min_fitness_score){
         sensor_msgs::PointCloud2 pc;
         pcl::toROSMsg(*transformed_qd_cloud, pc);
         pc.header.frame_id = gt_cloud->header.frame_id;
         registered_cloud_pub.publish(pc);
         min_fitness_score = avg_error;
+        vis_pub.publish(marker);
     }
 }
 
