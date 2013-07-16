@@ -22,6 +22,10 @@ qd_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
     vis_pub = nh.advertise<visualization_msgs::Marker>("/cloud_vis_marker",1, this);
     kpg_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+(std::string)GT_CUBE+"/kp_cloud",1);
     kpq_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+(std::string)QD_CUBE+"/kp_cloud",1);
+    set_parameters_server = nh.advertiseService("/analyze_pc/set_parameters",
+            &AnalyzePC::setParamCb, this);
+
+    harris_radius = 0.3;
 }
 
 void AnalyzePC::gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
@@ -131,7 +135,7 @@ void AnalyzePC::showKeyPoints(){
     pcl::HarrisKeypoint3D<pcl::PointXYZRGB, pcl::PointXYZI, pcl::PointNormal> hkp;
     pcl::PointCloud<pcl::PointXYZI> keypoints;
     sensor_msgs::PointCloud2 kp_pc;
-    hkp.setRadius(0.3);
+    hkp.setRadius(harris_radius);
 
     hkp.setInputCloud(gt_cloud);
     hkp.compute(keypoints);
@@ -144,6 +148,11 @@ void AnalyzePC::showKeyPoints(){
     keypoints.header.frame_id=qd_cloud->header.frame_id;
     pcl::toROSMsg(keypoints, kp_pc);
     kpq_pub.publish(kp_pc);
+}
+
+bool AnalyzePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
+    nh.getParam("/analyze_pc/harris_radius", harris_radius);
+    return true;
 }
 
 tf::StampedTransform getTransform(std::string from_frame, std::string to_frame){
