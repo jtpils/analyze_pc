@@ -24,28 +24,29 @@ void processCloud(){
         ROS_ERROR("Not yet received point clouds");
         return;
     }
-    std::cerr << input_cloud.header.frame_id << "\n";
+    //std::cerr << input_cloud.header.frame_id << "\n";
     processed_cloud.points.clear();
     tcw = getTransform(input_cloud.header.frame_id, WORLD_FRAME);
     tcl = getTransform(input_cloud.header.frame_id, LASER_FRAME);
-    std::ofstream dout;
-    dout.open("points.txt",std::ofstream::out);
     pcl::PointXYZ origin(tcl.getOrigin().x(),tcl.getOrigin().y(),tcl.getOrigin().z());
-    std::cerr << origin.x << " " << origin.y << " " << origin.z << "\n";
+    //std::ofstream dout;
+    //dout.open("points.txt",std::ofstream::out);
+    //std::cerr << origin.x << " " << origin.y << " " << origin.z << "\n";
     for (size_t i=0; i<input_cloud.points.size(); ++i){
         pcl::PointXYZ p = input_cloud.points[i];
         float distance = (p.x-origin.x)*(p.x-origin.x) + (p.y-origin.y)*(p.y-origin.y) + (p.z-origin.z)*(p.z-origin.z);
         if (p.x*p.x+p.y*p.y==0 or distance > laser_range*laser_range-1){
         }else{
-            dout << distance << "\n";
+            //dout << distance << "\n";
             processed_cloud.points.push_back(p);
         }
     }
     processed_cloud.width = processed_cloud.points.size();
-    std::cerr << processed_cloud.width << "\n";
+    //std::cerr << processed_cloud.width << "\n";
     processed_cloud.height = 1;
     processed_cloud.header.frame_id = WORLD_FRAME;
-    dout.close();
+    ROS_INFO("Processed cloud published with %d points", processed_cloud.width);
+    //dout.close();
 }
 
 void publishCloud(){
@@ -62,12 +63,14 @@ int main (int argc, char ** argv){
     processed_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>("/laser/processed_cloud",1);
     laser_range = 70;
     nh.setParam("/bridge_process/laser_range",laser_range);
+    ros::Rate loop_rate(2);
     while(ros::ok()){
         ros::spinOnce();
         nh.getParam("/bridge_process/laser_range",laser_range);
         processCloud();
         publishCloud();
         //continueLoop();
+        loop_rate.sleep();
     }
     return 0;
 }
