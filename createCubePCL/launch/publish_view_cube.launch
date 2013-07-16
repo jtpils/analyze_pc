@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+
+<launch>
+
+      <node pkg="tf" type="static_transform_publisher" name="isam_to_imu" args="0 0 0 0 0 0 /cube_cloud /world 100" />
+      <node pkg="createCubePCL" name="publish_cube" type="publish_cube"/>
+      <node pkg="rviz" name="rviz" type="rviz" args="-d $(find createCubePCL)/rviz/cube_pc.vcg" />
+
+</launch>
