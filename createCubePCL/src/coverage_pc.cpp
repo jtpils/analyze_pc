@@ -4,6 +4,7 @@
 #include <fstream>
 
 #define WORLD_FRAME "/world"
+//#define PRINT_NN_DATA
 
 std::vector<int> findNearestPointIndices(Point& searchPoint, pcl::PointCloud<Point>::Ptr& cloud, pcl::KdTreeFLANN<Point>& kdtree, int K);
 void convertPoints(pcl::PointXYZRGB& p, Point& q);
@@ -34,7 +35,10 @@ cov_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
     nh.setParam("/coverage_pc/min_nn_factor", min_nn_factor);
     test_number = 0;
     nh.setParam("/coverage_pc/test_number", test_number);
+    data_generated = false;
+#ifdef PRINT_NN_DATA
     data_generated = true;
+#endif
 }
 
 void CoveragePC::gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
@@ -50,7 +54,9 @@ bool CoveragePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Resp
     nh.getParam("/coverage_pc/min_nn", min_nn);
     nh.getParam("/coverage_pc/min_nn_factor", min_nn_factor);
     nh.getParam("/coverage_pc/test_number", test_number);
+#ifdef PRINT_NN_DATA
     data_generated = false;
+#endif
     return true;
 }
 
@@ -159,11 +165,13 @@ float CoveragePC::areaFunction(int n){
 // For each point, find the local density and give area corresponding to it
 // to it
 void CoveragePC::estimateCoverage(){
+#ifdef PRINT_NN_DATA
     std::ofstream fout[3];
     boost::filesystem::create_directories("./dist/"+boost::to_string(test_number)+"/");
     for (int i=0; i<3; ++i){
         fout[i].open(("dist/"+boost::to_string(test_number)+"/"+boost::to_string(i)+"_data.txt").c_str(), std::ofstream::out);
     }
+#endif
     if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
         ROS_WARN("Not yet received point clouds");
         return;
@@ -187,7 +195,9 @@ void CoveragePC::estimateCoverage(){
         if (no_of_points>0){
             cloud_fractions[(int)cloud_corresp[i]] += areaFunction(no_of_points);
         }
+#ifdef PRINT_NN_DATA
         fout[cloud_corresp[i]] << no_of_points << "\n";
+#endif
     }
     float sum_fractions=0.0;
     std::cerr << "fractions : ";
@@ -202,10 +212,12 @@ void CoveragePC::estimateCoverage(){
         std::cerr << cloud_fractions[i] << " ";
     }
     std::cerr<<"\n";
+#ifdef PRINT_NN_DATA
     for (int i=0; i<3; ++i){
         fout[i].close();
     }
     data_generated = true;
+#endif
 }
 
 void CoveragePC::spin(){
