@@ -201,13 +201,13 @@ void CoveragePC::estimateCoverage(){
 }
 
 void CoveragePC::spin(){
-    ros::Rate loop_rate(10);
+    ros::Rate loop_rate(2);
     while (ros::ok()){
         ros::spinOnce();
         findCorrespondences();
         estimateCoverage();
         loop_rate.sleep();
-        if (!continueLoop()) break;
+        //if (!continueLoop()) break;
         ROS_INFO(" ");
     }
 }
