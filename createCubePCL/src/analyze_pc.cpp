@@ -1,8 +1,8 @@
 #include <createCubePCL/analyze_pc.h>
 #include "dm_colors.hpp"
 
-#define GT_CUBE "cube2"
-#define QD_CUBE "cube1"
+#define GT_CLOUD "cube2"
+#define QD_CLOUD "cube1"
 #define WORLD_FRAME "/world"
 //#define CORRESPONDENCE_ONLY
 //#define ERROR_LINES_DISPLAY
@@ -15,17 +15,18 @@ AnalyzePC::AnalyzePC():
 gt_cloud(new pcl::PointCloud<pcl::PointXYZRGB>),
 qd_cloud(new pcl::PointCloud<pcl::PointXYZRGB>)
 {
-    std::string gt_cloud_topic_name = "/"+(std::string)GT_CUBE+"/cloud";
-    std::string qd_cloud_topic_name = "/"+(std::string)QD_CUBE+"/cloud";
+    std::string gt_cloud_topic_name = "/"+(std::string)GT_CLOUD+"/cloud";
+    std::string qd_cloud_topic_name = "/"+(std::string)QD_CLOUD+"/cloud";
     gt_cloud_sub = nh.subscribe(gt_cloud_topic_name, 1, &AnalyzePC::gtCloudCb, this);
     qd_cloud_sub = nh.subscribe(qd_cloud_topic_name, 1, &AnalyzePC::qdCloudCb, this);
     vis_pub = nh.advertise<visualization_msgs::Marker>("/cloud_vis_marker",1, this);
-    kpg_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+(std::string)GT_CUBE+"/kp_cloud",1);
-    kpq_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+(std::string)QD_CUBE+"/kp_cloud",1);
+    kpg_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+(std::string)GT_CLOUD+"/kp_cloud",1);
+    kpq_pub = nh.advertise<sensor_msgs::PointCloud2>("/"+(std::string)QD_CLOUD+"/kp_cloud",1);
     set_parameters_server = nh.advertiseService("/analyze_pc/set_parameters",
             &AnalyzePC::setParamCb, this);
 
     harris_radius = 0.3;
+    nh.setParam("/analyze_pc/harris_radius", harris_radius);
 }
 
 void AnalyzePC::gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
@@ -133,21 +134,24 @@ void AnalyzePC::visualizeError(){
 
 void AnalyzePC::showKeyPoints(){
     pcl::HarrisKeypoint3D<pcl::PointXYZRGB, pcl::PointXYZI, pcl::PointNormal> hkp;
-    pcl::PointCloud<pcl::PointXYZI> keypoints;
     sensor_msgs::PointCloud2 kp_pc;
     hkp.setRadius(harris_radius);
 
     hkp.setInputCloud(gt_cloud);
-    hkp.compute(keypoints);
-    keypoints.header.frame_id=gt_cloud->header.frame_id;
-    pcl::toROSMsg(keypoints, kp_pc);
+    hkp.compute(keypoints_gt);
+    keypoints_gt.header.frame_id=gt_cloud->header.frame_id;
+    pcl::toROSMsg(keypoints_gt, kp_pc);
     kpg_pub.publish(kp_pc);
 
     hkp.setInputCloud(qd_cloud);
-    hkp.compute(keypoints);
-    keypoints.header.frame_id=qd_cloud->header.frame_id;
-    pcl::toROSMsg(keypoints, kp_pc);
+    hkp.compute(keypoints_qd);
+    keypoints_qd.header.frame_id=qd_cloud->header.frame_id;
+    pcl::toROSMsg(keypoints_qd, kp_pc);
     kpq_pub.publish(kp_pc);
+}
+
+void AnalyzePC::estimateFPFHFeatures(){
+
 }
 
 bool AnalyzePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
@@ -188,6 +192,7 @@ void AnalyzePC::spin(){
         ros::spinOnce();
         visualizeError();
         showKeyPoints();
+        estimateFPFHFeatures();
         loop_rate.sleep();
     }
 }
