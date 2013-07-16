@@ -48,7 +48,7 @@ fpfhs_qd(new pcl::PointCloud<pcl::FPFHSignature33>)
     nh.setParam("/analyze_pc/fpfh_estimation_radius", fpfh_estimation_radius);
     min_sample_distance = 0.05;
     nh.setParam("/analyze_pc/sacia/min_sample_distance", min_sample_distance);
-    max_correspondence_distance = 0.01*0.01;
+    max_correspondence_distance = 0.05*0.05;
     nh.setParam("/analyze_pc/sacia/max_correspondence_distance",
             max_correspondence_distance);
     nr_iterations = 500;
@@ -65,105 +65,6 @@ void AnalyzePC::gtCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
 
 void AnalyzePC::qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input){
     pcl::fromROSMsg(*input, *qd_cloud);
-}
-
-void AnalyzePC::visualizeError(){
-    if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
-        ROS_ERROR("Not yet received point clouds");
-        return;
-    }
-    ROS_INFO("Visualizing the error");
-    visualization_msgs::Marker marker;
-    marker.header.frame_id = WORLD_FRAME;
-    marker.header.stamp = ros::Time();
-    marker.id = 0;
-    marker.type = visualization_msgs::Marker::POINTS;
-#ifdef ERROR_LINES_DISPLAY
-    marker.type = visualization_msgs::Marker::LINE_LIST;
-#endif
-    marker.scale.x = 0.001;
-    marker.scale.y = 0.001;
-#ifdef ERROR_LINES_DISPLAY
-    marker.scale.x = 0.001;
-#endif
-    marker.color.r = 0.0;
-    marker.color.g = 0.0;
-    marker.color.b = 1.0;
-    marker.color.a = 1.0;
-    marker.points.clear();
-    marker.colors.clear();
-    error_data.clear();
-    float min_error = FLT_MAX;
-    float max_error = 0.0;
-
-    tf::StampedTransform tgw = getTransform(gt_cloud->header.frame_id, WORLD_FRAME);
-    tf::StampedTransform tqw = getTransform(qd_cloud->header.frame_id, WORLD_FRAME);
-    tf::StampedTransform tqg = getTransform(qd_cloud->header.frame_id, gt_cloud->header.frame_id);
-    std_msgs::ColorRGBA c;
-
-    pcl::transformPointCloud(*qd_cloud, *transformed_qd_cloud, transformation_q_g);
-
-    pcl::KdTreeFLANN<Point> kdtree;
-    kdtree.setInputCloud(gt_cloud);
-    for (size_t i=0; i<transformed_qd_cloud->width; ++i){
-        geometry_msgs::Point p;
-        geometry_msgs::Point q;
-        Point searchPoint = transformed_qd_cloud->points[i];
-        p.x = searchPoint.x;
-        p.y = searchPoint.y;
-        p.z = searchPoint.z;
-        marker.points.push_back(p);
-        // Not assuming exact correspondence
-        int point_index = findNearestPointIndices(searchPoint, gt_cloud, kdtree, 1)[0];
-        q.x = gt_cloud->points[point_index].x;
-        q.y = gt_cloud->points[point_index].y;
-        q.z = gt_cloud->points[point_index].z;
-#ifdef CORRESPONDENCE_ONLY
-        q.x = gt_cloud->points[i].x;
-        q.y = gt_cloud->points[i].y;
-        q.z = gt_cloud->points[i].z;
-        transformFromTo(q,tgw);
-#endif
-#ifdef ERROR_LINES_DISPLAY
-        marker.points.push_back(q);
-#endif
-        float error = (p.x-q.x)*(p.x-q.x)+(p.y-q.y)*(p.y-q.y)+(p.z-q.z)*(p.z-q.z);
-        if (sqrt(error) < max_correspondence_distance){
-            error = error/2;
-        }else{
-            error = max_correspondence_distance*(sqrt(error)-max_correspondence_distance/2);
-        }
-        if (error > max_error){
-            max_error = error;
-        }
-        if (error < min_error){
-            min_error = error;
-        }
-        error_data.push_back(error);
-    }
-    float avg_error = 0.0;
-    for (size_t i=0; i<error_data.size(); ++i){
-        float rgb[3];
-        dm::colormap(error_data[i], min_error, max_error, dm::line_colormap, rgb);
-        c.r = rgb[0];
-        c.g = rgb[1];
-        c.b = rgb[2];
-        c.a = 1.0;
-        marker.colors.push_back(c);
-#ifdef ERROR_LINES_DISPLAY
-        marker.colors.push_back(c);
-#endif
-        avg_error = (avg_error*i + error_data[i])/(i+1);
-    }
-    ROS_INFO("Average error (huber fitness score) is %f",avg_error);
-    if (avg_error <= min_fitness_score){
-        sensor_msgs::PointCloud2 pc;
-        pcl::toROSMsg(*transformed_qd_cloud, pc);
-        pc.header.frame_id = gt_cloud->header.frame_id;
-        registered_cloud_pub.publish(pc);
-        min_fitness_score = avg_error;
-        vis_pub.publish(marker);
-    }
 }
 
 void AnalyzePC::showKeyPoints(bool cache){
@@ -288,9 +189,14 @@ void AnalyzePC::applySACIA(){
     }
     ROS_INFO("Applying SAC-IA algorithm on the harris keypoint clouds using fpfh features");
     pcl::PointCloud<Point> ransaced_source;
+    pcl::KdTreeFLANN<Point> kdtree;
+    sensor_msgs::PointCloud2 pc;
     float fitness_score;
+    float min_error = FLT_MAX;
+    float max_error = 0.0;
+    float error = 0.0;
     sac_ia.setMinSampleDistance(min_sample_distance);
-    sac_ia.setMaxCorrespondenceDistance(max_correspondence_distance);
+    //sac_ia.setMaxCorrespondenceDistance(max_correspondence_distance);
     sac_ia.setMaximumIterations(nr_iterations);
 
     sac_ia.setInputCloud(toPointXYZ(keypoints_qd));
@@ -299,16 +205,163 @@ void AnalyzePC::applySACIA(){
     sac_ia.setTargetFeatures(fpfhs_gt);
     sac_ia.align(ransaced_source);
     fitness_score = sac_ia.getFitnessScore(max_correspondence_distance);
-    ROS_INFO("Pointclouds aligned, fitness score is :%f", fitness_score);
-
     transformation_q_g = sac_ia.getFinalTransformation();
+    ROS_INFO("Pointclouds aligned, fitness score (with keypoints only) is :%f", fitness_score);
     ransaced_source.width = ransaced_source.size();
     ransaced_source.height = 1;
-    pcl::io::savePCDFileASCII("registered_qd_cloud.pcd", ransaced_source);
-    sensor_msgs::PointCloud2 pc;
-    pcl::toROSMsg(ransaced_source, pc);
-    pc.header.frame_id = qd_cloud->header.frame_id;
-    registered_kp_pub.publish(pc);
+
+    pcl::PointCloud<Point>::Ptr kp_gt_cl = toPointXYZ(keypoints_gt);
+    kdtree.setInputCloud(kp_gt_cl);
+    error = 0.0;
+    for (size_t i=0; i < ransaced_source.width; ++i){
+        Point searchPoint = ransaced_source.points[i];
+        int point_index = findNearestPointIndices(searchPoint, kp_gt_cl, kdtree, 1)[0];
+        for (int j=0; j<33; ++j){
+            float diff = fpfhs_gt->points[point_index].histogram[j]-fpfhs_qd->points[i].histogram[j];
+            error += diff*diff;
+        }
+    }
+    ROS_INFO("Keypoint Fitness Match (Euclidean) is %f",error/ransaced_source.size());
+
+    pcl::transformPointCloud(*qd_cloud, *transformed_qd_cloud, transformation_q_g);
+    kdtree.setInputCloud(gt_cloud);
+    fitness_score = 0.0;
+    for (size_t i=0; i<transformed_qd_cloud->width; ++i){
+        Point searchPoint = transformed_qd_cloud->points[i];
+        int point_index = findNearestPointIndices(searchPoint, gt_cloud, kdtree, 1)[0];
+        Point resultPoint = gt_cloud->points[point_index];
+        Eigen::Vector4f p1 = Eigen::Vector4f (searchPoint.x, searchPoint.y, searchPoint.z, 0);
+        Eigen::Vector4f p2 = Eigen::Vector4f (resultPoint.x, resultPoint.y, resultPoint.z, 0);
+        error = (p1-p2).squaredNorm();
+        if (sqrt(error) < max_correspondence_distance){
+            error = error/2.0;
+        }else{
+            error = max_correspondence_distance*(sqrt(error)-max_correspondence_distance/2.0);
+        }
+        if (error > max_error){
+            max_error = error;
+        }
+        if (error < min_error){
+            min_error = error;
+        }
+        fitness_score += fabs(error);
+    }
+    float avg_error = fitness_score/transformed_qd_cloud->width;
+    ROS_INFO("Average error (huber fitness score) is %f",avg_error);
+    if (avg_error < min_fitness_score){
+        pcl::io::savePCDFileASCII("registered_kp_cloud.pcd", ransaced_source);
+        pcl::toROSMsg(ransaced_source, pc);
+        pc.header.frame_id = qd_cloud->header.frame_id;
+        registered_kp_pub.publish(pc);
+
+        pcl::io::savePCDFileASCII("registered_qd_cloud.pcd", *transformed_qd_cloud);
+        pcl::toROSMsg(*transformed_qd_cloud, pc);
+        pc.header.frame_id = gt_cloud->header.frame_id;
+        registered_cloud_pub.publish(pc);
+        min_fitness_score = avg_error;
+        char x;
+        std::cout << "Continue?\n";
+        std::cin >> x;
+    }
+}
+
+void AnalyzePC::visualizeError(){
+    if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
+        ROS_ERROR("Not yet received point clouds");
+        return;
+    }
+    ROS_INFO("Visualizing the error");
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = WORLD_FRAME;
+    marker.header.stamp = ros::Time();
+    marker.id = 0;
+    marker.type = visualization_msgs::Marker::POINTS;
+#ifdef ERROR_LINES_DISPLAY
+    marker.type = visualization_msgs::Marker::LINE_LIST;
+#endif
+    marker.scale.x = 0.001;
+    marker.scale.y = 0.001;
+#ifdef ERROR_LINES_DISPLAY
+    marker.scale.x = 0.001;
+#endif
+    marker.color.r = 0.0;
+    marker.color.g = 0.0;
+    marker.color.b = 1.0;
+    marker.color.a = 1.0;
+    marker.points.clear();
+    marker.colors.clear();
+    error_data.clear();
+    float min_error = FLT_MAX;
+    float max_error = 0.0;
+
+    tf::StampedTransform tgw = getTransform(gt_cloud->header.frame_id, WORLD_FRAME);
+    tf::StampedTransform tqw = getTransform(qd_cloud->header.frame_id, WORLD_FRAME);
+    tf::StampedTransform tqg = getTransform(qd_cloud->header.frame_id, gt_cloud->header.frame_id);
+    std_msgs::ColorRGBA c;
+
+    pcl::transformPointCloud(*qd_cloud, *transformed_qd_cloud, transformation_q_g);
+
+    pcl::KdTreeFLANN<Point> kdtree;
+    kdtree.setInputCloud(gt_cloud);
+    for (size_t i=0; i<transformed_qd_cloud->width; ++i){
+        geometry_msgs::Point p;
+        geometry_msgs::Point q;
+        Point searchPoint = transformed_qd_cloud->points[i];
+        p.x = searchPoint.x;
+        p.y = searchPoint.y;
+        p.z = searchPoint.z;
+        marker.points.push_back(p);
+        // Not assuming exact correspondence
+        int point_index = findNearestPointIndices(searchPoint, gt_cloud, kdtree, 1)[0];
+        q.x = gt_cloud->points[point_index].x;
+        q.y = gt_cloud->points[point_index].y;
+        q.z = gt_cloud->points[point_index].z;
+#ifdef CORRESPONDENCE_ONLY
+        q.x = gt_cloud->points[i].x;
+        q.y = gt_cloud->points[i].y;
+        q.z = gt_cloud->points[i].z;
+        transformFromTo(q,tgw);
+#endif
+#ifdef ERROR_LINES_DISPLAY
+        marker.points.push_back(q);
+#endif
+        float error = (p.x-q.x)*(p.x-q.x)+(p.y-q.y)*(p.y-q.y)+(p.z-q.z)*(p.z-q.z);
+        if (sqrt(error) < max_correspondence_distance){
+            //error = error/2.0;
+        }else{
+            //error = max_correspondence_distance*(sqrt(error)-max_correspondence_distance/2.0);
+        }
+        if (error > max_error){
+            max_error = error;
+        }
+        if (error < min_error){
+            min_error = error;
+        }
+        error_data.push_back(error);
+    }
+    float avg_error = 0.0;
+    for (size_t i=0; i<error_data.size(); ++i){
+        float rgb[3];
+        dm::colormap(error_data[i], min_error, max_error, dm::line_colormap, rgb);
+        c.r = rgb[0];
+        c.g = rgb[1];
+        c.b = rgb[2];
+        c.a = 1.0;
+        marker.colors.push_back(c);
+#ifdef ERROR_LINES_DISPLAY
+        marker.colors.push_back(c);
+#endif
+        avg_error = (avg_error*i + error_data[i])/(i+1);
+    }
+    ROS_INFO("Average error (huber fitness score) is %f",avg_error);
+    if (avg_error <= min_fitness_score){
+        sensor_msgs::PointCloud2 pc;
+        pcl::toROSMsg(*transformed_qd_cloud, pc);
+        pc.header.frame_id = gt_cloud->header.frame_id;
+        registered_cloud_pub.publish(pc);
+        min_fitness_score = avg_error;
+        vis_pub.publish(marker);
+    }
 }
 
 bool AnalyzePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res){
@@ -381,7 +434,7 @@ void AnalyzePC::spin(){
         showKeyPoints(true); //Using cached pointclouds
         estimateFPFHFeatures(true);
         applySACIA();
-        visualizeError();
+        //visualizeError();
 #ifdef VIEW_FPFH_HISTOGRAMS
         hist.spinOnce(10);
 #endif
