@@ -165,6 +165,9 @@ float CoveragePC::areaFunction(int n){
 // For each point, find the local density and give area corresponding to it
 // to it
 void CoveragePC::estimateCoverage(){
+    std::ofstream resout;
+    resout.open("res_data.txt", std::ofstream::out | std::ofstream::app);
+    resout << min_nn_factor << " " << min_nn << "\n";
 #ifdef PRINT_NN_DATA
     std::ofstream fout[3];
     boost::filesystem::create_directories("./dist/"+boost::to_string(test_number)+"/");
@@ -178,40 +181,48 @@ void CoveragePC::estimateCoverage(){
     }
     ROS_INFO("Estimating Coverage of pointclouds");
     ROS_INFO("No. of points are : %d %d %d", gt_cloud->size(), qd_cloud->size(), cov_cloud->size());
-    ROS_INFO("No. of points are? : %d %d %d", gt_cloud->width, qd_cloud->width, cov_cloud->width);
     pcl::KdTreeFLANN<Point> kdtree_cov;
     kdtree_cov.setInputCloud(cov_cloud);
     std::vector<int> k_indices;
     std::vector<float> k_sqr_distances;
     Point focusPoint;
     int no_of_points;
+    int corr_np[3]={0,0,0};
     for (int i=0; i<3; ++i){
         cloud_fractions[i] = 0;
     }
-    ROS_INFO("Estimating Coverage of pointclouds");
     for (size_t i=0; i<cov_cloud->size(); ++i){
         focusPoint = cov_cloud->points[i];
         no_of_points = kdtree_cov.radiusSearch(focusPoint, max_correspondence_distance, k_indices, k_sqr_distances);
         if (no_of_points>0){
             cloud_fractions[(int)cloud_corresp[i]] += areaFunction(no_of_points);
         }
+        corr_np[(int)cloud_corresp[i]]++;
 #ifdef PRINT_NN_DATA
         fout[cloud_corresp[i]] << no_of_points << "\n";
 #endif
     }
+    for (int i=0; i<3; ++i){
+        resout << corr_np[i] << " ";
+    }
+    resout << "\n";
     float sum_fractions=0.0;
     std::cerr << "fractions : ";
     for (int i=0; i<3; ++i){
         sum_fractions+=cloud_fractions[i];
         std::cerr << cloud_fractions[i] << " ";
+        resout << cloud_fractions[i] << " ";
     }
     std::cerr << "sum of fractions is :" << sum_fractions << "\n";
     std::cerr << "Fractions of cloud in Both, GC and QC :";
+    resout << "\n";
     for (int i=0; i<3; ++i){
         cloud_fractions[i] = cloud_fractions[i]/sum_fractions;
         std::cerr << cloud_fractions[i] << " ";
+        resout << cloud_fractions[i] << " ";
     }
     std::cerr<<"\n";
+    resout << "\n";
 #ifdef PRINT_NN_DATA
     for (int i=0; i<3; ++i){
         fout[i].close();
