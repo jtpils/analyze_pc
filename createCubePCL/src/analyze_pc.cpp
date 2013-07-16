@@ -117,8 +117,10 @@ void AnalyzePC::showKeyPoints(){
     //pcl::KdTreeFLANN<pcl::PointXYZRGB>::Ptr kdt_ptr;
     //kdt_ptr->setInputCloud(gt_cloud);
     pcl::PointCloud<pcl::PointXYZI> keypoints;
-    keypoints.header.frame_id="/world";
-    hkp.setInputCloud(qd_cloud);
+    keypoints.header.frame_id=gt_cloud->header.frame_id;
+    //hkp.setInputCloud(qd_cloud);
+    hkp.setInputCloud(gt_cloud);
+    hkp.setRadius(0.3);
     //hkp.setSearchSurface(gt_cloud);
     //hkp.setSearchMethod(kdt_ptr);
     hkp.compute(keypoints);
