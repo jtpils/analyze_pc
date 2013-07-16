@@ -44,8 +44,8 @@ class AnalyzePC {
     void qdCloudCb(const sensor_msgs::PointCloud2ConstPtr& input);
     bool setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Response& res);
     void visualizeError();
-    void showKeyPoints();
-    void estimateFPFHFeatures();
+    void showKeyPoints(bool cache=false);
+    void estimateFPFHFeatures(bool cache=false);
     void applySACIA();
 
     double harris_radius;

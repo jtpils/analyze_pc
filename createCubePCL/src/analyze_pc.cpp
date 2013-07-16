@@ -154,7 +154,14 @@ void AnalyzePC::visualizeError(){
     vis_pub.publish(marker);
 }
 
-void AnalyzePC::showKeyPoints(){
+void AnalyzePC::showKeyPoints(bool cache){
+    if (cache){
+        if ((pcl::io::loadPCDFile<pcl::PointXYZI>((std::string)"kp_gt.pcd", *keypoints_gt) != -1) and (pcl::io::loadPCDFile<pcl::PointXYZI>((std::string)"kp_qd.pcd", *keypoints_qd) != -1)){
+            return;
+        }else{
+            ROS_ERROR("Cached files read fail :kp_gt.pcd or kp_qd.pcd");
+        }
+    }
     if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
         ROS_ERROR("Not yet received point clouds");
         return;
@@ -183,7 +190,14 @@ void AnalyzePC::showKeyPoints(){
     ROS_INFO("Found QD_CLOUD keypoints :%d", keypoints_qd->points.size());
 }
 
-void AnalyzePC::estimateFPFHFeatures(){
+void AnalyzePC::estimateFPFHFeatures(bool cache){
+    if (cache){
+        if (pcl::io::loadPCDFile<pcl::FPFHSignature33>((std::string)"fpfhs_gt.pcd", *fpfhs_gt) != -1 and pcl::io::loadPCDFile<pcl::FPFHSignature33>((std::string)"fpfhs_qd.pcd", *fpfhs_qd) != -1){
+            return;
+        }else{
+            ROS_ERROR("Cached files read fail :fpfhs_gt.pcd or fpfhs_qd.pcd");
+        }
+    }
     if (gt_cloud->points.size()==0 or qd_cloud->points.size()==0){
         ROS_ERROR("Not yet received point clouds");
         return;
@@ -264,7 +278,8 @@ void AnalyzePC::applySACIA(){
     sac_ia.setSourceFeatures(fpfhs_qd);
     sac_ia.setInputTarget(toPointXYZ(keypoints_gt));
     sac_ia.setTargetFeatures(fpfhs_gt);
-    sac_ia.align(ransaced_source, transformation_q_g);
+    sac_ia.align(ransaced_source);
+    transformation_q_g = sac_ia.getFinalTransformation();
     fitness_score = sac_ia.getFitnessScore(max_correspondence_distance);
     ROS_INFO("Pointclouds aligned, fitness score is :%f", fitness_score);
 
@@ -344,8 +359,10 @@ void AnalyzePC::spin(){
     ros::Rate loop_rate(10);
     while(ros::ok()){
         ros::spinOnce();
-        showKeyPoints();
-        estimateFPFHFeatures();
+        //showKeyPoints();
+        //estimateFPFHFeatures();
+        showKeyPoints(true); //Using cached pointclouds
+        estimateFPFHFeatures(true);
         applySACIA();
         //visualizeError();
 #ifdef VIEW_FPFH_HISTOGRAMS
