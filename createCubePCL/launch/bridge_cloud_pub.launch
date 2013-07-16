@@ -1,0 +1,31 @@
+<?xml version="0.0"?>
+
+<launch>
+    <arg name="gt_name" default="laser0"/>
+    <arg name="qd_name" default="laser1"/>
+    <arg name="mesh_fname" default="frenchking.3ds"/>
+
+    <param name="/mesh_path" value="$(find mission_resources)/bridge_inspection/" />
+    <param name="/mesh_fname" value="$(arg mesh_fname)" />
+
+    <node name="static_tf2" pkg="tf" type="static_transform_publisher" args="0 0 24 0 0 0 1 /world /mesh_frame 20" />
+    <node name="static_tf_$(arg qd_name)" pkg="tf" type="static_transform_publisher" args="10 -20 0 0 0 0 1 /world /$(arg qd_name)_frame 20" />
+    <node name="static_tf_$(arg gt_name)" pkg="tf" type="static_transform_publisher" args="-10 20 0 0 0 0 1 /world /$(arg gt_name)_frame 20" />
+
+    <node name="bridge_scannersim_$(arg qd_name)" pkg="bridge_scannersim" type="bridge_scannersim" args="$(arg qd_name)_frame" output="screen">
+        <remap from="/cloud" to="/$(arg qd_name)/cloud"/>
+    </node>
+    <node name="bridge_scannersim_$(arg gt_name)" pkg="bridge_scannersim" type="bridge_scannersim" args="$(arg gt_name)_frame" output="screen">
+        <remap from="/cloud" to="/$(arg gt_name)/cloud"/>
+    </node>
+    <node name="bridge_sim_process_$(arg qd_name)" pkg="createCubePCL" type="bridge_sim_process" args="$(arg qd_name)_frame" output="screen">
+        <remap from="/cloud" to="/$(arg qd_name)/cloud"/>
+        <remap from="/laser/processed_cloud" to="$(arg qd_name)/processed_cloud"/>
+    </node>
+    <node name="bridge_sim_process_$(arg gt_name)" pkg="createCubePCL" type="bridge_sim_process" args="$(arg gt_name)_frame" output="screen">
+        <remap from="/laser/processed_cloud" to="$(arg gt_name)/processed_cloud"/>
+        <remap from="/cloud" to="/$(arg gt_name)/cloud"/>
+    </node>
+
+
+</launch>

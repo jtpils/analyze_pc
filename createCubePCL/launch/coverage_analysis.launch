@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<launch>
+    <arg name="gt_name" default="laser0"/>
+    <arg name="qd_name" default="laser1"/>
+
+    <node name="coverage_$(arg gt_name)_$(qd_name)" pkg="createCubePCL" name="coverage_pc" args="$(arg gt_name) $(arg qd_name)">
+
+    </node>
+
+</launch>
