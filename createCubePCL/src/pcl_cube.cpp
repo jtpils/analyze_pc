@@ -7,7 +7,10 @@
 
 pcl::Normal findNormal(pcl::Normal n1, pcl::Normal n2);
 
-PCLCube::PCLCube(std::string name){
+PCLCube::PCLCube(std::string name):
+rng(static_cast<unsigned> (time(0))),
+gaussian_dist(0,1)
+{
     cube_name = name;
     cube_center.x = 0;
     cube_center.y = 0;
@@ -17,9 +20,12 @@ PCLCube::PCLCube(std::string name){
     cube_axes[2] = findNormal(cube_axes[0],cube_axes[1]);
 
     dense = false;
+    noise = false;
     scale = 1.0;
     std::string topic_name = "/"+cube_name+"/cloud";
     point_cloud_pub = nh.advertise<sensor_msgs::PointCloud2>(topic_name,1);
+    generator = new GaussianGen(rng, gaussian_dist);
+
     //_spinner.= ros::AsyncSpinner(1);
     generatePoints();
 };
@@ -94,6 +100,23 @@ void PCLCube::generatePoints(){
         generatePlanePoints(findFaceCenter(i/2, direction), i);
         direction = (!direction);
     }
+}
+
+double PCLCube::getGaussian(double mean, double variance){
+    return mean + (*generator)()*sqrt(variance);
+}
+
+void PCLCube::addNoise(){
+    noise = true;
+    generatePoints();
+}
+
+void PCLCube::addNoise(GaussianGen& gen){
+    noise = true;
+    // Adds noise to all points
+    generator = new GaussianGen(gen);
+    std::cerr << (*generator)() << " " << (*generator)() << "\n";
+    generatePoints();
 }
 
 void PCLCube::changeCenterTo(pcl::PointXYZ new_center){

@@ -35,6 +35,11 @@ set(pcl_cube_HDRS
 set(pcl_cube_SRCS
     src/pcl_cube.cpp)
 
-rosbuild_add_executable(save_cube src/save_cube.cpp ${pcl_cube_HDRS} ${pcl_cube_SRCS})
-rosbuild_add_executable(publish_cube src/publish_cube.cpp ${pcl_cube_HDRS} ${pcl_cube_SRCS})
-rosbuild_add_executable(compare_two_cubes src/compare_two_cubes.cpp ${pcl_cube_HDRS} ${pcl_cube_SRCS})
+rosbuild_add_library(pclcube ${pcl_cube_HDRS} ${pcl_cube_SRCS})
+
+rosbuild_add_executable(save_cube src/save_cube.cpp)
+target_link_libraries(save_cube pclcube)
+rosbuild_add_executable(publish_cube src/publish_cube.cpp)
+target_link_libraries(publish_cube pclcube)
+rosbuild_add_executable(compare_two_cubes src/compare_two_cubes.cpp)
+target_link_libraries(compare_two_cubes pclcube)
