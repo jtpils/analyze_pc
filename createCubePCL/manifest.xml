@@ -13,6 +13,7 @@
   <depend package="pcl"/>
   <depend package="sensor_msgs"/>
   <depend package="roscpp"/>
+  <depend package="tf_conversions"/>
 
 </package>
 
