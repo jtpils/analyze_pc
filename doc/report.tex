@@ -15,10 +15,17 @@
 \pagebreak
 
 \section{Introduction and Motivation}
-Bridge Inspection Projection consists of building model of bridges using a UAV (Unmanned Aerial Vehicle) to provide for more streamlined inspection. Bridges require a biennial inspection and the present state of inspection involves manual surveying which is time consuming and involves cumbersome paper-based storage.
+Bridge Inspection Projection consists of building models of bridges using a UAV (Unmanned Aerial Vehicle) to provide for a more streamlined inspection. 
+Bridges require a biennial inspection and the present state of inspection involves manual surveying which is time consuming and involves cumbersome paper-based storage.
 
 \section{Error Analysis of Point Clouds}
-    In this section we shall go through techniques of analyzing error metrics between two given point clouds. The error metric would be a function of the distances between corresponding points.
+    In this section we shall go through techniques of analyzing error metrics between two given point clouds.
+    The error metric would be a function of the distances between corresponding points.
+    \subsection{Basic approach to error metric}
+    Assuming two point clouds are already registered (maybe through external sensor data, say odometry or GPS for example), we would like to define the error metric between two point clouds as the \emph{average euclidean distance} between the corresponding points.
+    If we have clouds named \textbf{G}(round) and \textbf{Q}(uadrotor), and $P_{G}^{i}$ is a point corresponding to point $P_Q^i$ for all points $i=1...N_Q$ in the cloud Q then the basic error metric is given by the following equation :
+    $$ e_{basic} = \frac{1}{N_Q} \sum (P_Q^{i}-P_G^i).Norm()$$
+    The corresponding point $P_G^i$ can be estimated as the nearest neighbour point in the cloud G for the point $P_Q^i$.
 
 \section{Coverage Analysis of Point Clouds}
 
