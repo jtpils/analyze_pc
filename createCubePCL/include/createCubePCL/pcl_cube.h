@@ -12,6 +12,9 @@
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 
+#define DENSE_FACTOR 16
+#define POINTS_PER_UNIT 128
+
 class PCLCube{
   public:
     PCLCube();

@@ -5,9 +5,6 @@
 
 #include <createCubePCL/pcl_cube.h>
 
-#define DENSE_FACTOR 16
-#define POINTS_PER_UNIT 128
-
 PCLCube::PCLCube(){
     cube_center.x = 0;
     cube_center.y = 0;
@@ -31,11 +28,10 @@ void PCLCube::savetoFile(std::string fn){
 }
 
 void PCLCube::generatePlanePoints(pcl::PointNormal center, float scale){
-    std::cout << "caleed?\n";
     //std::cerr << cube_cloud.width << " " << cube_cloud.height << "\n";
     for (size_t i=0; i<cube_cloud.width/6; ++i){
         for(size_t j=0; j<cube_cloud.height; ++j){
-            //cube_cloud.points(i,j) = pcl::PointXYZ(0.0,0.0,0.0);
+            cube_cloud(i,j) = pcl::PointXYZ(0.0,0.0,0.0);
             //TODO : get correct coordinates for points
             //
         }
@@ -43,7 +39,6 @@ void PCLCube::generatePlanePoints(pcl::PointNormal center, float scale){
 }
 
 void PCLCube::generatePoints(){
-    std::cerr << "Here?\n";
     cube_cloud.header.frame_id = "cube_cloud";
     float dense_scale = scale;
     if (dense){
@@ -52,15 +47,13 @@ void PCLCube::generatePoints(){
     cube_cloud.height = POINTS_PER_UNIT*dense_scale;
     cube_cloud.width = 6*POINTS_PER_UNIT*dense_scale;
     cube_cloud.points.resize(cube_cloud.width*cube_cloud.height);
-    std::cerr << cube_cloud.width << " " << cube_cloud.height << "\n";
-    std::cerr << POINTS_PER_UNIT << " " << DENSE_FACTOR << " " << dense_scale << "\n";
+    //std::cerr << cube_cloud.width << " " << cube_cloud.height << "\n";
+    //std::cerr << POINTS_PER_UNIT << " " << DENSE_FACTOR << " " << dense_scale << "\n";
     pcl::PointNormal face_centers[6];
     // TODO : get the correct face_centers with normals
     for (int i=0; i<6; ++i){
-        std::cerr << i ;
         generatePlanePoints(face_centers[i], scale);
     }
-    std::cerr << "Here?\n";
 }
 
 void PCLCube::spin(){
