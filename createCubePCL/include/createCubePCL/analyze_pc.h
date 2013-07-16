@@ -23,12 +23,14 @@ class AnalyzePC {
     ros::Publisher vis_pub;
     ros::Publisher kpg_pub;
     ros::Publisher kpq_pub;
-    ros::Publisher ransaced_cloud_pub;
+    ros::Publisher registered_cloud_pub;
+    ros::Publisher registered_kp_pub;
     ros::Subscriber gt_cloud_sub;
     ros::Subscriber qd_cloud_sub;
     ros::ServiceServer set_parameters_server;
     pcl::PointCloud<Point>::Ptr gt_cloud;
     pcl::PointCloud<Point>::Ptr qd_cloud;
+    pcl::PointCloud<Point>::Ptr transformed_qd_cloud;
     std::vector<float> error_data;
 
     pcl::PointCloud<pcl::PointXYZI>::Ptr keypoints_gt;
