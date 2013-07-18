@@ -35,6 +35,13 @@ Bridges require a biennial inspection and the present state of inspection involv
 
 \section{Coverage Analysis of Point Clouds}
     \subsection{Definitions}
-    As before, consider two point clouds, cloud \textbf{G} and cloud \textbf{Q}. These clouds 'cover' some parts of the world each. They may or may not cover the same regions in the world. We would like to quantify thet
+    As before, consider two point clouds, cloud \textbf{G} and cloud \textbf{Q}.
+    These clouds 'cover' some regions of the world each.
+    They may or may not cover the same regions in the world.
+    We would like to quantify the coverage of each cloud with respect to each other.
+    For a cloud \textbf{C}, we define the factor \emph{insert-name} as the region-fraction of the 'observable' world that is covered by the cloud C only.
+    It is denoted by $\gamma_C$
+    $$\gamma_C = \frac{\texttt{Region covered by cloud C only}}{\texttt{Observable world region}}$$
+    Assuming the point clouds represent surfaces of objects, the surface area might be a good estimate of the 'region'.
 \end{document}
 
