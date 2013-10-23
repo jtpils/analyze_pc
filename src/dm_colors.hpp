@@ -1,3 +1,5 @@
+#ifndef DM_COLORS_HPP_FLXUCXK2
+#define DM_COLORS_HPP_FLXUCXK2
 
 namespace dm
 {
@@ -355,3 +357,4 @@ void colormap(const T& val,
 }
 
 }
+#endif /* end of include guard: DM_COLORS_HPP_FLXUCXK2 */

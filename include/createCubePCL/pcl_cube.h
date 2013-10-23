@@ -53,6 +53,20 @@ class PCLCube{
     tf::StampedTransform getFrameToWorldTransform();
     tf::StampedTransform getWorldToFrameTransform();
 
+  public:
+    void set_scale(double scale_) { scale = scale_; }
+    void set_noise(bool noise_) {noise = noise_; }
+    void set_center_noise(bool center_noise_) { center_noise = center_noise_; }
+    void set_dense(bool dense_) { dense = dense_; }
+    void set_dense_factor(int dense_factor_) { dense_factor = dense_factor_; }
+    void set_points_per_unit(int points_per_unit_) { points_per_unit = points_per_unit_; }
+    void set_normal_sigma_factor(double normal_sigma_factor_) { normal_sigma_factor = normal_sigma_factor_; }
+    void set_inplane_sigma_factor(double inplane_sigma_factor_) { inplane_sigma_factor = inplane_sigma_factor_; }
+    void set_center_sigma_factor(double center_sigma_factor_) { center_sigma_factor = center_sigma_factor_; }
+    void set_orientation_sigma_factor(double orientation_sigma_factor_) { orientation_sigma_factor = orientation_sigma_factor_; }
+
+    pcl::PointCloud<pcl::PointXYZRGB> get_cube_cloud() { return cube_cloud; }
+
   private:
     void generatePlanePoints(pcl::PointNormal, int); // given a face center, generate points in that plane
     pcl::PointNormal findFaceCenter(int index, bool direction); // finds the center of a face with normal in the direction of index'th normal
@@ -70,7 +84,7 @@ class PCLCube{
     tf::TransformListener listener;
     tf::StampedTransform world_to_frame_transform;
     pcl::PointCloud<pcl::PointXYZRGB> cube_cloud; // the cube cloud
-    pcl::PointXYZ cube_center; // Cube center 
+    pcl::PointXYZ cube_center; // Cube center
     Eigen::Quaterniond cube_orientation;
 
     pcl::PointXYZ world_center;
