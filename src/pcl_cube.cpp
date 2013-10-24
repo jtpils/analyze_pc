@@ -254,7 +254,7 @@ void PCLCube::changeOrientationBy(Eigen::Quaterniond rot, bool world){
     if (world){
         world_orientation = rot;
         Eigen::Quaterniond tf_rot;
-        tf::RotationTFToEigen(getFrameToWorldTransform().getRotation(),tf_rot);
+        tf::quaternionTFToEigen(getFrameToWorldTransform().getRotation(),tf_rot);
         rot = rot*tf_rot; //or is it the other way round?
     }
     cube_orientation = rot;

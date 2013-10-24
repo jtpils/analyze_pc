@@ -1,6 +1,7 @@
 #ifndef PCL_UTILS_HPP__
 #define PCL_UTILS_HPP__
 #include <sensor_msgs/PointCloud2.h>
+#include <pcl_conversions/pcl_conversions.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <tf/transform_listener.h>
 

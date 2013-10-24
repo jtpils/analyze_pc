@@ -4,9 +4,10 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <tf/transform_listener.h>
 #include <visualization_msgs/Marker.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 #include <pcl/kdtree/kdtree_flann.h>
-#include <pcl/keypoints/harris_keypoint3D.h>
+#include <pcl/keypoints/harris_3d.h>
 #include <pcl/features/fpfh.h>
 #include <pcl/features/fpfh_omp.h>
 #include <pcl/visualization/histogram_visualizer.h>
