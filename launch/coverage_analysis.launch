@@ -4,7 +4,7 @@
     <arg name="gt_name" default="laser0"/>
     <arg name="qd_name" default="laser1"/>
 
-    <node name="coverage_$(arg gt_name)_$(arg qd_name)" pkg="createCubePCL" type="coverage_pc" args="$(arg gt_name) $(arg qd_name)" output="screen">
+    <node name="coverage_$(arg gt_name)_$(arg qd_name)" pkg="analyze_pc" type="coverage_pc" args="$(arg gt_name) $(arg qd_name)" output="screen">
         <remap from="/$(arg gt_name)/cloud" to="/$(arg gt_name)/processed_cloud"/>
         <remap from="/$(arg qd_name)/cloud" to="/$(arg qd_name)/processed_cloud"/>
     </node>

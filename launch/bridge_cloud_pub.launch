@@ -14,11 +14,11 @@
     <node name="bridge_scannersim_$(arg gt_name)" pkg="bridge_scannersim" type="bridge_scannersim" args="$(arg gt_name)_frame" output="screen">
         <remap from="/cloud" to="/$(arg gt_name)/cloud"/>
     </node>
-    <node name="bridge_sim_process_$(arg qd_name)" pkg="createCubePCL" type="bridge_sim_process" args="$(arg qd_name)_frame" output="screen">
+    <node name="bridge_sim_process_$(arg qd_name)" pkg="analyze_pc" type="bridge_sim_process" args="$(arg qd_name)_frame" output="screen">
         <remap from="/cloud" to="/$(arg qd_name)/cloud"/>
         <remap from="/laser/processed_cloud" to="$(arg qd_name)/processed_cloud"/>
     </node>
-    <node name="bridge_sim_process_$(arg gt_name)" pkg="createCubePCL" type="bridge_sim_process" args="$(arg gt_name)_frame" output="screen">
+    <node name="bridge_sim_process_$(arg gt_name)" pkg="analyze_pc" type="bridge_sim_process" args="$(arg gt_name)_frame" output="screen">
         <remap from="/laser/processed_cloud" to="$(arg gt_name)/processed_cloud"/>
         <remap from="/cloud" to="/$(arg gt_name)/cloud"/>
     </node>

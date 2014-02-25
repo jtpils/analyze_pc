@@ -3,7 +3,7 @@
  * Description : Cube PointCloud creation. Function definitions of the class
  */
 
-#include <createCubePCL/pcl_cube.h>
+#include <analyze_pc/pcl_cube.h>
 #include "utils.hpp"
 
 PCLCube::PCLCube(std::string name):

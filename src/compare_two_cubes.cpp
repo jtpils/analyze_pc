@@ -1,4 +1,4 @@
-#include <createCubePCL/pcl_cube.h>
+#include <analyze_pc/pcl_cube.h>
 #include "utils.hpp"
 
 int main (int argc, char ** argv){

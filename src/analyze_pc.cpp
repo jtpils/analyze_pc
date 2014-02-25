@@ -1,4 +1,4 @@
-#include <createCubePCL/analyze_pc.h>
+#include <analyze_pc/analyze_pc.h>
 #include "dm_colors.hpp"
 #include "utils.hpp"
 
@@ -477,7 +477,7 @@ bool AnalyzePC::setParamCb(std_srvs::Empty::Request& req, std_srvs::Empty::Respo
 }
 
 pcl::PointCloud<Point>::Ptr AnalyzePC::getCloud(std::string base_name){
-    std::string package_path = ros::package::getPath("createCubePCL");
+    std::string package_path = ros::package::getPath("analyze_pc");
     pcl::PointCloud<Point>::Ptr cloud(new pcl::PointCloud<Point>);
     pcl::io::loadPCDFile(package_path+"/data/"+base_name+"_UnStructured.pcd", *cloud);
     cloud->header.frame_id = "laser_"+base_name;
@@ -492,7 +492,7 @@ void AnalyzePC::spin(){
     while(ros::ok()){
         ros::spinOnce();
         //showKeyPoints(found_kp);
-        //estimateFPFHFeatures(found_fh);
+        estimateFPFHFeatures(found_fh);
         //gt_cloud = getCloud(gt_name);
         //qd_cloud = getCloud(qd_name);
         /*

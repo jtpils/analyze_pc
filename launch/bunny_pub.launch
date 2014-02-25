@@ -7,11 +7,11 @@
     <node pkg="tf" type="static_transform_publisher" name="world_to_laser0"  args="0 0 0 0 0 0 /world /laser_$(arg gt_name) 100" />
     <node pkg="tf" type="static_transform_publisher" name="world_to_laser2"  args="0 0 0 0 0 0 /world /laser_$(arg qd_name) 100" />
 
-    <node pkg="pcl_ros" type="pcd_to_pointcloud" name="$(arg gt_name)_node" args="$(find createCubePCL)/data/$(arg gt_name)_UnStructured.pcd 0.1" output="screen">
+    <node pkg="pcl_ros" type="pcd_to_pointcloud" name="$(arg gt_name)_node" args="$(find analyze_pc)/data/$(arg gt_name)_UnStructured.pcd 0.1" output="screen">
         <remap from="cloud_pcd" to="/$(arg gt_name)/cloud"/>
         <param name="frame_id" value="laser_$(arg gt_name)"/>
     </node>
-    <node pkg="pcl_ros" type="pcd_to_pointcloud" name="$(arg qd_name)_node" args="$(find createCubePCL)/data/$(arg qd_name)_UnStructured.pcd 0.1" output="screen">
+    <node pkg="pcl_ros" type="pcd_to_pointcloud" name="$(arg qd_name)_node" args="$(find analyze_pc)/data/$(arg qd_name)_UnStructured.pcd 0.1" output="screen">
         <remap from="cloud_pcd" to="/$(arg qd_name)/cloud"/>
         <param name="frame_id" value="laser_$(arg qd_name)"/>
     </node>

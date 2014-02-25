@@ -1,6 +1,6 @@
 #ifndef COVERAGE_PC_CPP
 #define COVERAGE_PC_CPP
-#include <createCubePCL/coverage_pc.h>
+#include <analyze_pc/coverage_pc.h>
 #include <boost/filesystem.hpp>
 #include "dm_colors.hpp"
 #include "utils.hpp"
