@@ -2,6 +2,6 @@
 
 <launch>
       <node pkg="analyze_pc" name="analyze_pc" type="analyze_pc" args="$(optenv GT_NAME cube2) $(optenv QD_NAME cube1)" output="screen"/>
-      <node pkg="rviz" name="rviz" type="rviz" args="-d $(find analyze_pc)/rviz/kp_cubes.vcg" />
+      <!--<node pkg="rviz" name="rviz" type="rviz" args="-d $(find analyze_pc)/rviz/kp_cubes.vcg" /> -->
 
 </launch>

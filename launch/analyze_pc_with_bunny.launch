@@ -7,5 +7,5 @@
         <param name="/analyze_pc/harris_radius" value="0.01"/>
     </node>
     -->
-    <node pkg="rviz" name="rviz" type="rviz" args="-d $(find analyze_pc)/rviz/kp_bunny.vcg" />
+    <!--<node pkg="rviz" name="rviz" type="rviz" args="-d $(find analyze_pc)/rviz/kp_bunny.vcg" />-->
 </launch>

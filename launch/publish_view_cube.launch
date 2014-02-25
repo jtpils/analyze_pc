@@ -4,6 +4,6 @@
 
       <node pkg="tf" type="static_transform_publisher" name="isam_to_imu" args="0 0 0 0 0 0 /cube_cloud /world 100" />
       <node pkg="analyze_pc" name="publish_cube" type="publish_cube"/>
-      <node pkg="rviz" name="rviz" type="rviz" args="-d $(find analyze_pc)/rviz/cube_pc.vcg" />
+      <!--<node pkg="rviz" name="rviz" type="rviz" args="-d $(find analyze_pc)/rviz/cube_pc.vcg" />-->
 
 </launch>
