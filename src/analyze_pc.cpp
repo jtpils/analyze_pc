@@ -491,7 +491,7 @@ void AnalyzePC::spin(){
     found_fh = false;
     while(ros::ok()){
         ros::spinOnce();
-        //showKeyPoints(found_kp);
+        showKeyPoints(found_kp);
         estimateFPFHFeatures(found_fh);
         //gt_cloud = getCloud(gt_name);
         //qd_cloud = getCloud(qd_name);
