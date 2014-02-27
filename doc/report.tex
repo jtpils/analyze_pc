@@ -1,4 +1,4 @@
-\documentclass[titlepage]{article}
+\documentclass[notitlepage]{article}
 \title{Bridge Inspection Project\\[1cm]\textbf{Analyzing Point Clouds}\\[1cm]}
 \addtolength{\textwidth}{2in}
 \addtolength{\hoffset}{-1in}
@@ -9,10 +9,39 @@
         }
 \begin{document}
 \maketitle
+
 \tableofcontents
 
-\section{Introduction and Motivation}
-        Bridge Inspection Projection consists of 
+\pagebreak
 
+\section{Introduction and Motivation}
+Bridge Inspection Projection consists of building models of bridges using a UAV (Unmanned Aerial Vehicle) to provide for a more streamlined inspection. 
+Bridges require a biennial inspection and the present state of inspection involves manual surveying which is time consuming and involves cumbersome paper-based storage.
+
+\section{Error Analysis of Point Clouds}
+    In this section we shall go through techniques of analyzing error metrics between two given point clouds.
+    The error metric would be a function of the distances between corresponding points.
+
+    \subsection{Basic approach to error metric}
+    Assuming two point clouds are already registered (maybe through external sensor data, say odometry or GPS for example), we would like to define the error metric between two point clouds as the \emph{average euclidean distance} between the corresponding points.
+    If we have clouds named \textbf{G}(round) and \textbf{Q}(uadrotor), and $P_{G}^{i}$ is a point corresponding to point $P_Q^i$ for all points $i=1...N_Q$ in the cloud Q then the basic error metric is given by the following equation :
+    $$ e_{basic} = \frac{1}{N_Q} \sum_{i} (P_Q^{i}-P_G^i).Norm()$$
+    The corresponding point $P_G^i$ can be estimated as the nearest neighbor point in the cloud G for the point $P_Q^i$.
+
+    \subsection{Realistic case : Unknown Point Clouds}
+    Now we consider the more realistic case of point clouds with unknown transformation between them.
+    We try to 'register' the point cloud using the data we can interpret from the points only.
+    In practice though, external sensor data can be used in conjunction with the interpretations from just the point clouds to fasten or improve the registration.
+
+\section{Coverage Analysis of Point Clouds}
+    \subsection{Definitions}
+    As before, consider two point clouds, cloud \textbf{G} and cloud \textbf{Q}.
+    These clouds 'cover' some regions of the world each.
+    They may or may not cover the same regions in the world.
+    We would like to quantify the coverage of each cloud with respect to each other.
+    For a cloud \textbf{C}, we define the factor \emph{insert-name} as the region-fraction of the 'observable' world that is covered by the cloud C only.
+    It is denoted by $\gamma_C$
+    $$\gamma_C = \frac{\texttt{Region covered by cloud C only}}{\texttt{Observable world region}}$$
+    Assuming the point clouds represent surfaces of objects, the surface area might be a good estimate of the 'region'.
 \end{document}
 
