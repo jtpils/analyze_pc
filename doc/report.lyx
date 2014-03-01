@@ -1,0 +1,207 @@
+#LyX file created by tex2lyx 2.0.2
+\lyxformat 413
+\begin_document
+\begin_header
+\textclass article
+\begin_preamble
+
+\title{Bridge Inspection Project\\[1cm]\textbf{Analyzing Point Clouds}\\[1cm]}
+\addtolength{\textwidth}{2in}
+\addtolength{\hoffset}{-1in}
+\author{S Krishna Savant\\
+        \texttt{savant@cmu.edu}\\
+        }
+
+\end_preamble
+\options notitlepage
+\use_default_options false
+\language english
+\language_package none
+\inputencoding auto
+\fontencoding default
+\font_roman default
+\font_sans default
+\font_typewriter default
+\font_default_family default
+\font_sc false
+\font_osf false
+\font_sf_scale 100
+\font_tt_scale 100
+\graphics default
+\paperfontsize default
+\spacing single
+\use_hyperref 1
+\pdf_bookmarks 1
+\pdf_bookmarksnumbered 0
+\pdf_bookmarksopen 0
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks 0
+\pdf_pdfborder 0
+\pdf_colorlinks 0
+\pdf_backref section
+\pdf_pdfusetitle 1
+\papersize default
+\use_geometry false
+\use_amsmath 1
+\use_esint 1
+\use_mhchem 0
+\use_mathdots 0
+\cite_engine basic
+\use_bibtopic false
+\paperorientation portrait
+\suppress_date false
+\use_refstyle 0
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation indent
+\paragraph_indentation default
+\quotes_language english
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Standard
+
+
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+
+Introduction and Motivation
+\end_layout
+
+\begin_layout Standard
+
+Bridge Inspection Projection consists of building models of bridges using a UAV (Unmanned Aerial Vehicle) to provide for a more streamlined inspection. Bridges require a biennial inspection and the present state of inspection involves manual surveying which is time consuming and involves cumbersome paper-based storage.
+\end_layout
+
+\begin_layout Section
+
+Error Analysis of Point Clouds
+\end_layout
+
+\begin_layout Standard
+
+In this section we shall go through techniques of analyzing error metrics between two given point clouds. The error metric would be a function of the distances between corresponding points.
+\end_layout
+
+\begin_layout Subsection
+
+Basic approach to error metric
+\end_layout
+
+\begin_layout Standard
+
+Assuming two point clouds are already registered (maybe through external sensor data, say odometry or GPS for example), we would like to define the error metric between two point clouds as the 
+\emph on
+average euclidean distance
+\emph default
+ between the corresponding points. If we have clouds named 
+\series bold
+G
+\series default
+(round) and 
+\series bold
+Q
+\series default
+(uadrotor), and 
+\begin_inset Formula $P_{G}^{i}$
+\end_inset
+
+ is a point corresponding to point 
+\begin_inset Formula $P_Q^i$
+\end_inset
+
+ for all points 
+\begin_inset Formula $i=1...N_Q$
+\end_inset
+
+ in the cloud Q then the basic error metric is given by the following equation : 
+\begin_inset Formula \[ e_{basic} = \frac{1}{N_Q} \sum_{i} (P_Q^{i}-P_G^i).Norm()\]
+\end_inset
+
+ The corresponding point 
+\begin_inset Formula $P_G^i$
+\end_inset
+
+ can be estimated as the nearest neighbor point in the cloud G for the point 
+\begin_inset Formula $P_Q^i$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+
+Realistic case : Unknown Point Clouds
+\end_layout
+
+\begin_layout Standard
+
+Now we consider the more realistic case of point clouds with unknown transformation between them. We try to 'register' the point cloud using the data we can interpret from the points only. In practice though, external sensor data can be used in conjunction with the interpretations from just the point clouds to fasten or improve the registration.
+\end_layout
+
+\begin_layout Section
+
+Coverage Analysis of Point Clouds
+\end_layout
+
+\begin_layout Subsection
+
+Definitions
+\end_layout
+
+\begin_layout Standard
+
+As before, consider two point clouds, cloud 
+\series bold
+G
+\series default
+ and cloud 
+\series bold
+Q
+\series default
+. These clouds 'cover' some regions of the world each. They may or may not cover the same regions in the world. We would like to quantify the coverage of each cloud with respect to each other. For a cloud 
+\series bold
+C
+\series default
+, we define the factor 
+\emph on
+insert-name
+\emph default
+ as the region-fraction of the 'observable' world that is covered by the cloud C only. It is denoted by 
+\begin_inset Formula $\gamma_C$
+\end_inset
+
+ 
+\begin_inset Formula \[\gamma_C = \frac{\texttt{Region covered by cloud C only}}{\texttt{Observable world region}}\]
+\end_inset
+
+ Assuming the point clouds represent surfaces of objects, the surface area might be a good estimate of the 'region'. 
+\end_layout
+
+\end_body
+\end_document
